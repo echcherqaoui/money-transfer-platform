@@ -1,0 +1,145 @@
+services:
+  postgres:
+    image: postgres:${POSTGRES_VERSION}
+    container_name: postgres-mt-platform
+    ports:
+      - "${PG_PORT_HOST}:5432"
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: ${PG_DB}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ${PG_INIT_PATH}:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - money-transfer-net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${PG_USER} -d ${PG_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    command: [
+      "postgres",
+      "-c", "wal_level=logical",
+      "-c", "max_connections=101"
+    ]
+
+  kafka:
+    image: confluentinc/cp-kafka:${CONFLUENT_VERSION}
+    container_name: kafka-mt-platform
+    ports:
+      - "${KF_PORT}:${KF_PORT}"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      CLUSTER_ID: ${CLUSTER_ID}
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:${KF_CONTROLLER_PORT}
+
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:${KF_INTERNAL_PORT},EXTERNAL://0.0.0.0:${KF_PORT},CONTROLLER://0.0.0.0:${KF_CONTROLLER_PORT}
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:${KF_INTERNAL_PORT},EXTERNAL://localhost:${KF_PORT}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KF_REPLICATION_FACTOR}
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: ${KF_REPLICATION_FACTOR}
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: ${KF_REPLICATION_FACTOR}
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - money-transfer-net
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost ${KF_INTERNAL_PORT}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:${CONFLUENT_VERSION}
+    container_name: schema-registry-mt-platform
+    ports:
+      - "${SC_REGISTRY_PORT}:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://kafka:${KF_INTERNAL_PORT}"
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    networks:
+      - money-transfer-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8081/subjects || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  connect:
+    build:
+      context: .
+      dockerfile: kafka-connect.Dockerfile
+      args:
+        CONFLUENT_VERSION: ${CONFLUENT_VERSION}
+        DEBEZIUM_VERSION: ${DEBEZIUM_VERSION}
+    container_name: connect-mt-platform
+    ports:
+      - "${KF_CONNECT_PORT}:8083"
+    environment:
+      CONNECT_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.TransformationChain=TRACE,io.debezium.transforms.outbox=TRACE"
+      CONNECT_BOOTSTRAP_SERVERS: "kafka:${KF_INTERNAL_PORT}"
+      CONNECT_REST_ADVERTISED_HOST_NAME: connect
+      CONNECT_GROUP_ID: compose-connect-group
+
+      CONNECT_CONFIG_STORAGE_TOPIC: _connect_configs
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: ${KF_REPLICATION_FACTOR}
+      CONNECT_OFFSET_STORAGE_TOPIC: _connect_offsets
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: ${KF_REPLICATION_FACTOR}
+      CONNECT_STATUS_STORAGE_TOPIC: _connect_status
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: ${KF_REPLICATION_FACTOR}
+
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_INTERNAL_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_VALUE_CONVERTER: io.confluent.connect.protobuf.ProtobufConverter
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
+    networks:
+      - money-transfer-net
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8083/connector-plugins" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  money-transfer-net:
+    driver: bridge
+    name: money-transfer-net
+
+volumes:
+  postgres_data:
+  kafka_data:
+    driver: local

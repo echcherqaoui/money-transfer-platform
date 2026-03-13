@@ -1,0 +1,40 @@
+services:
+  pgadmin:
+    image: dpage/pgadmin4:${PGADMIN_VERSION}
+    container_name: pgadmin-mt-platform
+    ports:
+      - "${PGADMIN_PORT_HOST}:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - money-transfer-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:${KF_UI_VERSION}
+    container_name: kafka-ui-mt-platform
+    ports:
+      - "${KF_UI_PORT}:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: MTPlatformCluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:${KF_INTERNAL_PORT}
+      DYNAMIC_CONFIG_ENABLED: true
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: "connect"
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: ${KF_CONNECT_URL}
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: ${SC_REGISTRY_URL}
+      AUTH_TYPE: DISABLED
+    networks:
+      - money-transfer-net
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgadmin_data:
