@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.3</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.moneytransfer</groupId>
+    <artifactId>money-transfer-platform</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>money-transfer-platform</name>
+
+    <modules>
+        <module>common/transfer-api-contract</module>
+        <module>common/common-security</module>
+        <module>services/transaction-service</module>
+        <module>services/fraud-service</module>
+        <module>services/wallet-service</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <spring-cloud.version>2025.1.0</spring-cloud.version>
+        <protobuf.version>3.25.5</protobuf.version>
+        <kafka-protobuf-serializer.version>7.7.7</kafka-protobuf-serializer.version>
+        <resilience4j.version>2.2.0</resilience4j.version>
+        <flyway.version>11.7.2</flyway.version>
+        <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
+        <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
+        <jtw-version>0.12.6</jtw-version>
+    </properties>
+
+    <repositories>
+        <!-- Required for kafka-protobuf-serializer and Schema Registry client -->
+        <repository>
+            <id>confluent</id>
+            <url>https://packages.confluent.io/maven/</url>
+        </repository>
+    </repositories>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         DEPENDENCY MANAGEMENT
+         Declares versions only — does NOT add deps to child modules.
+    ════════════════════════════════════════════════════════════════ -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Cloud BOM — resolves versions for spring-cloud-* deps -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Internal modules -->
+            <dependency>
+                <groupId>com.moneytransfer</groupId>
+                <artifactId>transfer-api-contract</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.moneytransfer</groupId>
+                <artifactId>common-security</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Protobuf runtime -->
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
+
+            <!-- Confluent Kafka Protobuf Serializer / Deserializer -->
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-protobuf-serializer</artifactId>
+                <version>${kafka-protobuf-serializer.version}</version>
+            </dependency>
+
+            <!-- Resilience4j -->
+            <dependency>
+                <groupId>io.github.resilience4j</groupId>
+                <artifactId>resilience4j-spring-boot3</artifactId>
+                <version>${resilience4j.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         COMMON DEPENDENCIES
+         Inherited by every child module automatically.
+    ════════════════════════════════════════════════════════════════ -->
+    <dependencies>
+        <!-- Lombok — annotation-only, excluded from final jar via plugin config below -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Test slice — every module gets this -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         BUILD
+         <plugins>          → runs in EVERY child module
+         <pluginManagement> → declares config/version only;
+                              child must reference the plugin to activate it
+    ════════════════════════════════════════════════════════════════ -->
+    <build>
+        <plugins>
+            <!-- Runs in every module. All child modules inherit it. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release>${java.version}</release>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+
+        <pluginManagement>
+            <!-- Activated only in modules that need them -->
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <configuration>
+                        <excludes>
+                            <exclude>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                            </exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.xolstice.maven.plugins</groupId>
+                    <artifactId>protobuf-maven-plugin</artifactId>
+                    <version>${protobuf-maven-plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>
