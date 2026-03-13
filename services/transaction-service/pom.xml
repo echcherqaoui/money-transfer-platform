@@ -16,6 +16,16 @@
     <description>Entry point for transfers — writes outbox, consumes completion events</description>
 
     <dependencies>
+        <!-- Internal -->
+        <dependency>
+            <groupId>com.moneytransfer</groupId>
+            <artifactId>transfer-api-contract</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.moneytransfer</groupId>
+            <artifactId>common-security</artifactId>
+        </dependency>
+
         <!-- Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -16,6 +16,12 @@
     <description>Pure Kafka consumer/producer — fraud rules engine, no DB, no REST API</description>
 
     <dependencies>
+        <!-- Internal -->
+        <dependency>
+            <groupId>com.moneytransfer</groupId>
+            <artifactId>transfer-api-contract</artifactId>
+        </dependency>
+
         <!-- Kafka -->
         <dependency>
             <groupId>org.springframework.kafka</groupId>

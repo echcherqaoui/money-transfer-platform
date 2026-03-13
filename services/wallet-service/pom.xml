@@ -16,6 +16,16 @@
     <description>Balance source of truth — idempotent consumer, SSE push, Kafka producer</description>
 
     <dependencies>
+        <!-- Internal -->
+        <dependency>
+            <groupId>com.moneytransfer</groupId>
+            <artifactId>transfer-api-contract</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.moneytransfer</groupId>
+            <artifactId>common-security</artifactId>
+        </dependency>
+
         <!-- Web (SSE requires servlet) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
