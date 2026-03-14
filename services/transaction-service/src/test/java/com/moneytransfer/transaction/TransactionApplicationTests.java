@@ -1,10 +1,10 @@
-package com.moneytransfer.walletservice;
+package com.moneytransfer.transaction;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class WalletServiceApplicationTests {
+class TransactionApplicationTests {
 
     @Test
     void contextLoads() {

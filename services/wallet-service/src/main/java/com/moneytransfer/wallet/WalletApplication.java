@@ -1,13 +1,13 @@
-package com.moneytransfer.transactionservice;
+package com.moneytransfer.wallet;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class TransactionServiceApplication {
+public class WalletApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(TransactionServiceApplication.class, args);
+        SpringApplication.run(WalletApplication.class, args);
     }
 
 }

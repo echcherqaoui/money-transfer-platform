@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.3</version>
+        <version>3.5.11</version>
         <relativePath/>
     </parent>
 
@@ -31,7 +31,6 @@
         <protobuf.version>3.25.5</protobuf.version>
         <kafka-protobuf-serializer.version>7.7.7</kafka-protobuf-serializer.version>
         <resilience4j.version>2.2.0</resilience4j.version>
-        <flyway.version>11.7.2</flyway.version>
         <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
         <jtw-version>0.12.6</jtw-version>

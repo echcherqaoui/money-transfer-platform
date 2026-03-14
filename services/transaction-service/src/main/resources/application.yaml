@@ -1,3 +1,22 @@
+server:
+  port: ${PORT}
+
 spring:
   application:
     name: transaction-service
+
+  datasource:
+    hikari:
+      pool-name: HikariPool-transaction
+    url: ${DATASOURCE_URL}
+    username: ${DATASOURCE_USERNAME}
+    password: ${DATASOURCE_PASSWORD}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    database: postgresql
+
+  flyway:
+    validate-on-migrate: true
