@@ -66,4 +66,61 @@
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <id>register-schemas</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>io.confluent</groupId>
+                        <artifactId>kafka-schema-registry-maven-plugin</artifactId>
+                        <version>${kafka-protobuf-serializer.version}</version>
+                        <configuration>
+                            <schemaRegistryUrls>
+                                <schemaRegistryUrl>${schema.registry.url}</schemaRegistryUrl>
+                            </schemaRegistryUrls>
+                            <messagePath>src/main/proto</messagePath>
+                            <subjects>
+                                <money.transfer.initiated-value>
+                                    src/main/proto/com/moneytransfer/transfer_initiated.proto
+                                </money.transfer.initiated-value>
+
+                                <money.transfer.approved-value>
+                                    src/main/proto/com/moneytransfer/transfer_approved.proto
+                                </money.transfer.approved-value>
+
+                                <money.transfer.fraud-detected-value>
+                                    src/main/proto/com/moneytransfer/fraud_detected.proto
+                                </money.transfer.fraud-detected-value>
+
+                                <money.transfer.completed-value>
+                                    src/main/proto/com/moneytransfer/transfer_completed.proto
+                                </money.transfer.completed-value>
+
+                                <money.transfer.failed-value>
+                                    src/main/proto/com/moneytransfer/transfer_failed.proto
+                                </money.transfer.failed-value>
+                            </subjects>
+
+                            <schemaTypes>
+                                <money.transfer.initiated-value>PROTOBUF</money.transfer.initiated-value>
+                                <money.transfer.approved-value>PROTOBUF</money.transfer.approved-value>
+                                <money.transfer.fraud-detected-value>PROTOBUF</money.transfer.fraud-detected-value>
+                                <money.transfer.completed-value>PROTOBUF</money.transfer.completed-value>
+                                <money.transfer.failed-value>PROTOBUF</money.transfer.failed-value>
+                            </schemaTypes>
+
+                            <compatibilityLevels>
+                                <money.transfer.initiated-value>BACKWARD</money.transfer.initiated-value>
+                                <money.transfer.approved-value>BACKWARD</money.transfer.approved-value>
+                                <money.transfer.fraud-detected-value>BACKWARD</money.transfer.fraud-detected-value>
+                                <money.transfer.completed-value>BACKWARD</money.transfer.completed-value>
+                                <money.transfer.failed-value>BACKWARD</money.transfer.failed-value>
+                            </compatibilityLevels>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

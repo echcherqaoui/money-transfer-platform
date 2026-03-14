@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package com.moneytransfer;
+
+option java_package = "com.moneytransfer.contract";
+option java_outer_classname = "FraudDetectedProto";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+// ───────────────────────────────────────────────────────────────
+// Published by: fraud-service
+// Consumed by:  transaction-service (mark FAILED + SSE notify)
+//               wallet-service (discard local pending state)
+// Topic:        money.transfer.decision
+// ───────────────────────────────────────────────────────────────
+message FraudDetected {
+  string event_id  = 1;
+  string signature = 2;
+  google.protobuf.Timestamp occurred_at = 3;
+  string transaction_id = 4;
+  string sender_id      = 5;
+  string reason = 6;
+}

@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package com.moneytransfer;
+
+option java_package = "com.moneytransfer.contract";
+option java_outer_classname = "TransferCompletedProto";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+// ───────────────────────────────────────────────────────────────
+// Published by: wallet-service
+// Consumed by:  transaction-service (mark COMPLETED + SSE notify)
+// Topic:        money.transfer.result
+// ───────────────────────────────────────────────────────────────
+message TransferCompleted {
+  string event_id  = 1;
+  string signature = 2;
+  google.protobuf.Timestamp occurred_at = 3;
+  string transaction_id = 4;
+  string sender_id      = 5;
+  string receiver_id    = 6;
+
+  int64 amount_minor_units         = 7;
+  int64 sender_new_balance_minor   = 8;
+  int64 receiver_new_balance_minor = 9;
+}

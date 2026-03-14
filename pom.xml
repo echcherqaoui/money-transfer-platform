@@ -34,10 +34,17 @@
         <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
         <jtw-version>0.12.6</jtw-version>
+        <schema.registry.url>http://localhost:8181</schema.registry.url>
     </properties>
 
+    <pluginRepositories>
+        <pluginRepository>
+            <id>confluent</id>
+            <url>https://packages.confluent.io/maven/</url>
+        </pluginRepository>
+    </pluginRepositories>
+
     <repositories>
-        <!-- Required for kafka-protobuf-serializer and Schema Registry client -->
         <repository>
             <id>confluent</id>
             <url>https://packages.confluent.io/maven/</url>

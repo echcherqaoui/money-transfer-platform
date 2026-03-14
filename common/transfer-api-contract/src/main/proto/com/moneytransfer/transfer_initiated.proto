@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package com.moneytransfer;
+
+option java_package = "com.moneytransfer.contract";
+option java_outer_classname = "MoneyTransferInitiatedProto";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+// ───────────────────────────────────────────────────────────────
+// Published by: transaction-service (via Debezium outbox)
+// Consumed by:  fraud-service, wallet-service
+// Topic:        money.transfer.initiated
+//
+// This is the ONLY event that carries financial data.
+// All downstream events reference transaction_id only.
+// ───────────────────────────────────────────────────────────────
+message MoneyTransferInitiated {
+  string event_id = 1;
+  string signature = 2;
+  google.protobuf.Timestamp occurred_at = 3;
+  string transaction_id = 4;
+  string sender_id      = 5;
+  string receiver_id    = 6;
+  int64 amount_minor_units = 7;
+}

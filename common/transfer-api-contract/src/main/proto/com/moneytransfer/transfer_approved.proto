@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package com.moneytransfer;
+
+option java_package = "com.moneytransfer.contract";
+option java_outer_classname = "TransferApprovedProto";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+// ───────────────────────────────────────────────────────────────
+// Published by: fraud-service
+// Consumed by:  wallet-service
+// Topic:        money.transfer.decision
+// ───────────────────────────────────────────────────────────────
+message TransferApproved {
+  string event_id  = 1;
+  string signature = 2;
+  google.protobuf.Timestamp occurred_at = 3;
+  string transaction_id = 4;
+}
