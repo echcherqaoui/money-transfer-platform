@@ -1,7 +1,6 @@
 package com.moneytransfer.exception.handler;
 
 import com.moneytransfer.exception.core.BaseCustomException;
-import com.moneytransfer.exception.core.CommonErrorCode;
 import com.moneytransfer.exception.core.IErrorCode;
 import com.moneytransfer.exception.response.ErrorResponse;
 import jakarta.validation.ConstraintViolationException;

@@ -3,7 +3,7 @@ services:
     image: postgres:${POSTGRES_VERSION}
     container_name: postgres-mt-platform
     ports:
-      - "${PG_PORT_HOST}:5432"
+      - "${PG_PORT}:5432"
     environment:
       POSTGRES_USER: ${PG_USER}
       POSTGRES_PASSWORD: ${PG_PASSWORD}
@@ -25,6 +25,64 @@ services:
       "postgres",
       "-c", "wal_level=logical",
       "-c", "max_connections=101"
+    ]
+
+  keycloak:
+    container_name: keycloak-mt-platform
+    image: quay.io/keycloak/keycloak:${KC_VERSION}
+    ports:
+      - "${KC_PORT_HOST}:8080"
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://${PG_SERVICE}:${PG_PORT}/${KC_DB}
+      KC_DB_USERNAME: ${PG_USER}
+      KC_DB_PASSWORD: ${PG_PASSWORD}
+
+      KEYCLOAK_ADMIN: ${KC_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
+      KC_HOSTNAME: ${KC_PUBLIC_BASE_URL}
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: true
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    networks:
+      - money-transfer-net
+    healthcheck:
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /realms/master HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK' || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["start-dev"]
+
+  redis:
+    image: redis:${RD_VERSION}
+    container_name: redis-mt-platform
+    ports:
+      - "${RD_PORT}:6379"
+    environment:
+      REDIS_PASSWORD: ${RD_PASSWORD}
+
+    volumes:
+      - redis_data:/data
+    networks:
+      - money-transfer-net
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli -a $${REDIS_PASSWORD} --no-raw ping | grep PONG" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    command: [
+      "redis-server",
+      "--requirepass", "${RD_PASSWORD}",
+      "--appendonly", "yes"
     ]
 
   kafka:
@@ -141,5 +199,7 @@ networks:
 
 volumes:
   postgres_data:
+  keycloak_data:
+  redis_data:
   kafka_data:
     driver: local

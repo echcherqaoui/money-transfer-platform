@@ -1,0 +1,97 @@
+server:
+  port: ${PORT}
+  reactive:
+    session:
+      cookie:
+        name: MONEY_TRANSFER_SESSION
+        path: /
+        http-only: true
+        secure: ${SESSION_SECURE:false}
+        same-site: lax
+
+spring:
+  application:
+    name: api-gateway
+  # ── Spring Session — uses Redis as session store ───────────────
+  session:
+    store-type: redis
+    timeout: 1800s # 30 minutes (matches SSO Session Idle)
+    redis:
+      namespace: "money-transfer:gateway"
+      flush-mode: on_save  # write to Redis only when session changes
+      save-mode: always
+
+  # ── Redis — stores JWT server-side (BFF pattern) ──────────────
+  # Browser gets a SESSION cookie only
+  data:
+    redis:
+      host: ${RD_HOST}
+      port: ${RD_PORT}
+      password: ${RD_PASSWORD}
+
+  # ── OAuth2 Client — BFF, Keycloak as auth server ──────────────
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: ${KC_CLIENT_ID}
+            client-secret: ${KC_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            scope: openid, profile, email
+            redirect-uri: "{baseUrl}/login/oauth2/code/keycloak"
+        provider:
+          keycloak:
+            # Browser redirects here for login page
+            authorization-uri: ${KC_PUBLIC_BASE_URL}/realms/${KC_REALM}/protocol/openid-connect/auth
+            # Gateway calls these internally — Docker hostname
+            token-uri: ${KC_INTERNAL_BASE_URL}/realms/${KC_REALM}/protocol/openid-connect/token
+            jwk-set-uri: ${KC_INTERNAL_BASE_URL}/realms/${KC_REALM}/protocol/openid-connect/certs
+            user-info-uri: ${KC_INTERNAL_BASE_URL}/realms/${KC_REALM}/protocol/openid-connect/userinfo
+            user-name-attribute: sub
+  # ── Static routing ─────────────────────────────────────────────
+  # Docker Compose service names resolve inside Docker network.
+  # TokenRelay filter: extracts JWT from Redis session,
+  cloud:
+    gateway:
+      server:
+        webflux:
+          # ── CORS — configured once here, not per service ────────────
+          globalcors:
+            corsConfigurations:
+              '[/**]':
+                allowedOrigins:
+                  - ${FRONTEND_URL}
+                allowedMethods: [GET, POST, PUT, DELETE, OPTIONS]
+                allowedHeaders: ["Content-Type", "Accept", "X-Requested-With", "Authorization"]
+                allowCredentials: true
+                maxAge: 3600
+
+          default-filters:
+            - TokenRelay
+
+          routes:
+            - id: transaction-service
+              uri: http://transaction-service:${TRANSACTION_SERVICE_PORT}
+              predicates:
+                - Path=/transfers/**
+
+            - id: wallet-service
+              uri: http://wallet-service:${WALLET_SERVICE_PORT}
+              predicates:
+                - Path=/wallets/**
+
+# ── Observability ─────────────────────────────────────────────────
+management:
+  server:
+    port: ${MANAGEMENT_PORT}
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+
+logging:
+  level:
+    com.moneytransfer: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG

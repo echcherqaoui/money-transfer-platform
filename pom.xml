@@ -18,8 +18,10 @@
     <name>money-transfer-platform</name>
 
     <modules>
+        <module>common/common-exceptions</module>
         <module>common/transfer-api-contract</module>
         <module>common/common-security</module>
+        <module>infrastructure/api-gateway</module>
         <module>services/transaction-service</module>
         <module>services/fraud-service</module>
         <module>services/wallet-service</module>
@@ -27,7 +29,7 @@
 
     <properties>
         <java.version>17</java.version>
-        <spring-cloud.version>2025.1.0</spring-cloud.version>
+        <spring-cloud.version>2025.0.1</spring-cloud.version>
         <protobuf.version>3.25.5</protobuf.version>
         <kafka-protobuf-serializer.version>7.7.7</kafka-protobuf-serializer.version>
         <resilience4j.version>2.2.0</resilience4j.version>
@@ -75,6 +77,11 @@
             <dependency>
                 <groupId>com.moneytransfer</groupId>
                 <artifactId>common-security</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.moneytransfer</groupId>
+                <artifactId>common-exceptions</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
