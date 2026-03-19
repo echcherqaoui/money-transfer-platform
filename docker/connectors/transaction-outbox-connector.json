@@ -1,0 +1,36 @@
+{
+  "name": "transaction-outbox-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max": "1",
+    "plugin.name": "pgoutput",
+
+    "database.hostname": "${PG_SERVICE}",
+    "database.port": "5432",
+    "database.user": "${PG_USER}",
+    "database.password": "${PG_PASSWORD}",
+    "database.dbname": "${TRANSACTION_DB}",
+
+    "topic.prefix": "mtp.transaction",
+    "table.include.list": "public.outbox_event",
+    "slot.name": "transaction_outbox_slot",
+    "publication.name": "transaction_outbox_publication",
+
+    "transforms": "outbox",
+    "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+    "transforms.outbox.table.field.event.id": "id",
+    "transforms.outbox.table.field.event.key": "aggregate_id",
+    "transforms.outbox.table.field.event.type": "event_type",
+    "transforms.outbox.table.field.event.payload": "payload",
+    "transforms.outbox.route.by.field": "event_type",
+    "transforms.outbox.route.topic.replacement": "mtp.transaction.transfer.${routedByValue}",
+    "transforms.outbox.table.expand.json.payload": "false",
+
+    "value.converter": "io.debezium.converters.BinaryDataConverter",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+
+    "heartbeat.interval.ms": "10000",
+    "tombstones.on.delete": "false",
+    "transforms.outbox.heartbeat.topics.prefix": "__debezium-heartbeat"
+  }
+}

@@ -23,7 +23,7 @@ services:
       - "${KF_UI_PORT}:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: MTPlatformCluster
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:${KF_INTERNAL_PORT}
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-0:${KF_INTERNAL_PORT}
       DYNAMIC_CONFIG_ENABLED: true
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: "connect"
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: ${KF_CONNECT_URL}
@@ -32,7 +32,7 @@ services:
     networks:
       - money-transfer-net
     depends_on:
-      kafka:
+      kafka-0:
         condition: service_healthy
     restart: unless-stopped
 

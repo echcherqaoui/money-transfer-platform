@@ -20,3 +20,10 @@ build/
 
 # Environment variables (Crucial for security)
 .env
+
+# Ignore the local Terraform directory
+.terraform/
+
+#terraform
+*.tfstate
+*.tfstate.backup
