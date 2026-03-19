@@ -20,7 +20,10 @@ import java.util.UUID;
 @Entity
 @Table(
       name = "outbox_event",
-      indexes = { @Index(name = "idx_outbox_event_aggregate",   columnList = "aggregate_type, aggregate_id") }
+      indexes = {
+            @Index(name = "idx_outbox_event_aggregate",   columnList = "aggregate_type, aggregate_id"),
+            @Index(name = "idx_outbox_created_at", columnList = "created_at")
+      }
 )
 @Getter
 @Setter

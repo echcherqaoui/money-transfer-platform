@@ -39,7 +39,7 @@ help:
 	@echo ""
 	@echo "  Build"
 	@echo "    rebuild-service       Rebuild and restart a single service"
-	@echo "                          Usage: make rebuild-service MODULE=services/transaction-service SERVICE=transaction-service"
+	@echo "                          Usage: make rebuild-service MODULE=services/transaction-service SERVICE=transaction"
 	@echo ""
 
 # ══════════════════════════════════════════════════════════════════

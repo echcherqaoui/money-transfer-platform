@@ -14,6 +14,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -21,6 +22,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+
+import static org.hibernate.type.SqlTypes.NAMED_ENUM;
 
 @Entity
 @Table(
@@ -53,6 +56,7 @@ public class Transaction {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "transaction_status")
+    @JdbcTypeCode(NAMED_ENUM)
     private TransactionStatus status;
 
     @CreatedDate
@@ -62,4 +66,5 @@ public class Transaction {
     @LastModifiedDate
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private OffsetDateTime updatedAt;
+
 }

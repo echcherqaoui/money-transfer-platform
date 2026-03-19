@@ -69,10 +69,10 @@ spring:
 
           default-filters:
             - TokenRelay
-
+            - SaveSession # Ensures session is persisted across calls
           routes:
             - id: transaction-service
-              uri: http://transaction-service:${TRANSACTION_SERVICE_PORT}
+              uri: http://transaction:${TRANSACTION_SERVICE_PORT}
               predicates:
                 - Path=/transfers/**
 

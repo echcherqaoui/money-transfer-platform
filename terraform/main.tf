@@ -5,6 +5,16 @@ locals {
 	standard_partitions = 3
 }
 
+resource "kafka_topic" "debezium_heartbeat" {
+  name               = "__debezium-heartbeat.mtp.transaction"
+  partitions         = 1
+  replication_factor = 1
+  config = {
+    "cleanup.policy" = "delete"
+    "retention.ms"   = "3600000" # 1 hour is enough;
+  }
+}
+
 resource "kafka_topic" "transfer_initiated" {
   name               = "${local.prefix}.transaction.transfer.initiated.v1"
   replication_factor = 1 # single broker — dev only, increase for production

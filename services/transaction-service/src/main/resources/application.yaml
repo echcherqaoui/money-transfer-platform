@@ -20,3 +20,34 @@ spring:
 
   flyway:
     validate-on-migrate: true
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KC_INTERNAL_BASE_URL}/realms/${KC_REALM}/protocol/openid-connect/certs
+
+  kafka:
+    bootstrap-servers: kafka-0:${KF_INTERNAL_PORT}
+    properties:
+      schema.registry.url: ${SC_REGISTRY_URL}
+
+    consumer:
+      group-id: ${KF_CONSUMER_GROUP_ID}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer
+        auto.register.schemas: false
+        use.latest.version: true
+
+app:
+  security:
+    hmac:
+      secret: ${HMAC_SECRET_KEY}
+
+kafka:
+  topics:
+    transfer-initiated: mtp.transaction.transfer.initiated.v1

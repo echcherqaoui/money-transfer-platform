@@ -1,0 +1,1 @@
+CREATE INDEX idx_outbox_created_at ON outbox_event (created_at);

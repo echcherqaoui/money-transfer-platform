@@ -30,3 +30,29 @@ services:
       keycloak:
         condition: service_healthy
     restart: unless-stopped
+
+  transaction:
+    build:
+      context: ../services/transaction-service
+    container_name: transaction-mt-platform
+    environment:
+      PORT: ${TRANSACTION_SERVICE_PORT}
+
+      DATASOURCE_URL: jdbc:postgresql://${PG_SERVICE}:${PG_PORT}/${TRANSACTION_DB}
+      DATASOURCE_USERNAME: ${PG_USER}
+      DATASOURCE_PASSWORD: ${PG_PASSWORD}
+
+      KC_INTERNAL_BASE_URL: ${KC_INTERNAL_BASE_URL}
+      KC_REALM: ${KC_REALM}
+      SC_REGISTRY_URL:  ${SC_REGISTRY_URL}
+      KF_CONSUMER_GROUP_ID: ${KF_TRANSACTION_CONSUMER_GROUP_ID}
+
+      HMAC_SECRET_KEY: ${SECRET_KEY}
+    networks:
+      - money-transfer-net
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
