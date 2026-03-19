@@ -15,7 +15,7 @@ public class CommonSecurityAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(ISignatureService.class)
-    public ISignatureService signatureService(@Value("${security.hmac.secret}") String secret) {
+    public ISignatureService signatureService(@Value("${app.security.hmac.secret}") String secret) {
         return new HmacSignatureService(secret);
     }
 }

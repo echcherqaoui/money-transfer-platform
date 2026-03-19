@@ -1,7 +1,6 @@
 package com.moneytransfer.security.service.impl;
 
 import com.moneytransfer.security.service.ISignatureService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 
 import javax.crypto.Mac;
@@ -11,7 +10,6 @@ import java.util.Base64;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-@Slf4j
 public class HmacSignatureService implements ISignatureService {
 
     private static final String ALGORITHM = "HmacSHA256";
@@ -19,7 +17,7 @@ public class HmacSignatureService implements ISignatureService {
 
     private final byte[] secretKeyBytes;
 
-    public HmacSignatureService(@Value("${security.hmac.secret}") String secret) {
+    public HmacSignatureService(@Value("${app.security.hmac.secret}") String secret) {
         this.secretKeyBytes = secret.getBytes(UTF_8);
     }
 
@@ -47,14 +45,30 @@ public class HmacSignatureService implements ISignatureService {
     }
 
     @Override
-    public String sign(String eventId, String transactionId, String epochSeconds) {
-        String payload = String.join(DELIMITER, eventId, transactionId, epochSeconds);
-        return computeHmac(payload);
+    public String sign(String eventId,
+                       String transactionId,
+                       String epochSeconds) {
+        return computeHmac(
+              String.join(
+                    DELIMITER,
+                    eventId,
+                    transactionId,
+                    epochSeconds
+              )
+        );
     }
 
     @Override
-    public boolean verify(String eventId, String transactionId, String epochSeconds, String signature) {
-        String expected = sign(eventId, transactionId, epochSeconds);
+    public boolean verify(String eventId,
+                          String transactionId,
+                          String epochSeconds,
+                          String signature) {
+        String expected = sign(
+              eventId,
+              transactionId,
+              epochSeconds
+        );
+
         return constantTimeEquals(expected, signature);
     }
 }
