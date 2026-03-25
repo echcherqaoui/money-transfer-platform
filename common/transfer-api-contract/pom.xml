@@ -81,41 +81,41 @@
                             </schemaRegistryUrls>
                             <messagePath>src/main/proto</messagePath>
                             <subjects>
-                                <money.transfer.initiated-value>
+                                <com.moneytransfer.MoneyTransferInitiated>
                                     src/main/proto/com/moneytransfer/transfer_initiated.proto
-                                </money.transfer.initiated-value>
+                                </com.moneytransfer.MoneyTransferInitiated>
 
-                                <money.transfer.approved-value>
+                                <com.moneytransfer.TransferApproved>
                                     src/main/proto/com/moneytransfer/transfer_approved.proto
-                                </money.transfer.approved-value>
+                                </com.moneytransfer.TransferApproved>
 
-                                <money.transfer.fraud-detected-value>
+                                <com.moneytransfer.FraudDetected>
                                     src/main/proto/com/moneytransfer/fraud_detected.proto
-                                </money.transfer.fraud-detected-value>
+                                </com.moneytransfer.FraudDetected>
 
-                                <money.transfer.completed-value>
+                                <com.moneytransfer.TransferCompleted>
                                     src/main/proto/com/moneytransfer/transfer_completed.proto
-                                </money.transfer.completed-value>
+                                </com.moneytransfer.TransferCompleted>
 
-                                <money.transfer.failed-value>
+                                <com.moneytransfer.TransferFailed>
                                     src/main/proto/com/moneytransfer/transfer_failed.proto
-                                </money.transfer.failed-value>
+                                </com.moneytransfer.TransferFailed>
                             </subjects>
 
                             <schemaTypes>
-                                <money.transfer.initiated-value>PROTOBUF</money.transfer.initiated-value>
-                                <money.transfer.approved-value>PROTOBUF</money.transfer.approved-value>
-                                <money.transfer.fraud-detected-value>PROTOBUF</money.transfer.fraud-detected-value>
-                                <money.transfer.completed-value>PROTOBUF</money.transfer.completed-value>
-                                <money.transfer.failed-value>PROTOBUF</money.transfer.failed-value>
+                                <com.moneytransfer.MoneyTransferInitiated> PROTOBUF </com.moneytransfer.MoneyTransferInitiated>
+                                <com.moneytransfer.TransferApproved> PROTOBUF </com.moneytransfer.TransferApproved>
+                                <com.moneytransfer.FraudDetected> PROTOBUF </com.moneytransfer.FraudDetected>
+                                <com.moneytransfer.TransferCompleted> PROTOBUF </com.moneytransfer.TransferCompleted>
+                                <com.moneytransfer.TransferFailed> PROTOBUF </com.moneytransfer.TransferFailed>
                             </schemaTypes>
 
                             <compatibilityLevels>
-                                <money.transfer.initiated-value>BACKWARD</money.transfer.initiated-value>
-                                <money.transfer.approved-value>BACKWARD</money.transfer.approved-value>
-                                <money.transfer.fraud-detected-value>BACKWARD</money.transfer.fraud-detected-value>
-                                <money.transfer.completed-value>BACKWARD</money.transfer.completed-value>
-                                <money.transfer.failed-value>BACKWARD</money.transfer.failed-value>
+                                <com.moneytransfer.MoneyTransferInitiated> BACKWARD </com.moneytransfer.MoneyTransferInitiated>
+                                <com.moneytransfer.TransferApproved> BACKWARD </com.moneytransfer.TransferApproved>
+                                <com.moneytransfer.FraudDetected> BACKWARD </com.moneytransfer.FraudDetected>
+                                <com.moneytransfer.TransferCompleted> BACKWARD </com.moneytransfer.TransferCompleted>
+                                <com.moneytransfer.TransferFailed> BACKWARD </com.moneytransfer.TransferFailed>
                             </compatibilityLevels>
                         </configuration>
                     </plugin>

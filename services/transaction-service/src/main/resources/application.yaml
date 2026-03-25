@@ -28,10 +28,10 @@ spring:
           jwk-set-uri: ${KC_INTERNAL_BASE_URL}/realms/${KC_REALM}/protocol/openid-connect/certs
 
   kafka:
-    bootstrap-servers: kafka-0:${KF_INTERNAL_PORT}
+    bootstrap-servers: ${KF_BOOTSTRAP_SERVERS}
     properties:
       schema.registry.url: ${SC_REGISTRY_URL}
-
+      value.subject.name.strategy: io.confluent.kafka.serializers.subject.RecordNameStrategy
     consumer:
       group-id: ${KF_CONSUMER_GROUP_ID}
       auto-offset-reset: earliest
@@ -43,11 +43,25 @@ spring:
         auto.register.schemas: false
         use.latest.version: true
 
+# Actuator — internal port, never publicly exposed
+management:
+  server:
+    port: ${MANAGEMENT_PORT}
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+
+# ── Kafka topic names ────────────────────────────────────────────────────────
+kafka:
+  topics:
+    transfer-initiated: ${KF_TOPIC_PREFIX}.mtp.transaction.transfer.initiated.v1
+
+# ── HMAC ─────────────────────────────────────────────────────────────────────
 app:
   security:
     hmac:
       secret: ${HMAC_SECRET_KEY}
-
-kafka:
-  topics:
-    transfer-initiated: mtp.transaction.transfer.initiated.v1

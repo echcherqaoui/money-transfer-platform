@@ -19,7 +19,27 @@
         <!-- Internal -->
         <dependency>
             <groupId>com.moneytransfer</groupId>
+            <artifactId>common-exceptions</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.moneytransfer</groupId>
+            <artifactId>common-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.moneytransfer</groupId>
             <artifactId>transfer-api-contract</artifactId>
+        </dependency>
+
+        <!-- Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Redis -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
         <!-- Kafka -->

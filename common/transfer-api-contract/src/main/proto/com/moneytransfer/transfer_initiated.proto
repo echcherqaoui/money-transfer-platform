@@ -21,7 +21,7 @@ message MoneyTransferInitiated {
   string signature = 2;
   google.protobuf.Timestamp occurred_at = 3;
   string transaction_id = 4;
-  string sender_id      = 5;
-  string receiver_id    = 6;
+  string sender_id = 5;
+  string receiver_id = 6;
   int64 amount_minor_units = 7;
 }

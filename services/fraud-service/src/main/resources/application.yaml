@@ -1,3 +1,63 @@
+server:
+  port: ${PORT}
+
 spring:
   application:
     name: fraud-service
+
+  data:
+    redis:
+      host: ${RD_HOST}
+      port: ${RD_PORT}
+      password: ${RD_PASSWORD}
+
+  kafka:
+    bootstrap-servers: ${KF_BOOTSTRAP_SERVERS}
+    properties:
+      schema.registry.url: ${SC_REGISTRY_URL}
+      value.subject.name.strategy: io.confluent.kafka.serializers.subject.RecordNameStrategy
+    consumer:
+      group-id: ${KF_CONSUMER_GROUP_ID}
+      auto-offset-reset: earliest
+      enable-auto-commit: false   # MANUAL_IMMEDIATE ack — never auto-commit
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer
+        auto.register.schemas: false
+        use.latest.version: true
+
+# Actuator — internal port, never publicly exposed
+management:
+  server:
+    port: ${MANAGEMENT_PORT}
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+
+# ── Kafka topic names ────────────────────────────────────────────────────────
+kafka:
+  topics:
+    transfer-initiated: ${KF_TOPIC_PREFIX}.mtp.transaction.transfer.initiated.v1
+    transfer-approved: ${KF_TOPIC_PREFIX}.mtp.transaction.transfer.approved.v1
+    fraud-detected: ${KF_TOPIC_PREFIX}.mtp.transaction.transfer.fraud.detected.v1
+
+# ── Fraud rules ──────────────────────────────────────────────────────────────
+fraud:
+  rules:
+    amount-threshold-minor-units: ${FRAUD_AMOUNT_THRESHOLD}
+    velocity:
+      max-transactions: ${FRAUD_VELOCITY_MAX}
+      window-minutes: ${FRAUD_WINDOW_MIN}
+  idempotency:
+    ttl-seconds: 86400  # 24h
+
+# ── HMAC ─────────────────────────────────────────────────────────────────────
+app:
+  security:
+    hmac:
+      secret: ${HMAC_SECRET_KEY}

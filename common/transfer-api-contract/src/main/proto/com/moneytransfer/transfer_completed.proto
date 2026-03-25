@@ -18,10 +18,10 @@ message TransferCompleted {
   string signature = 2;
   google.protobuf.Timestamp occurred_at = 3;
   string transaction_id = 4;
-  string sender_id      = 5;
-  string receiver_id    = 6;
+  string sender_id = 5;
+  string receiver_id = 6;
 
-  int64 amount_minor_units         = 7;
-  int64 sender_new_balance_minor   = 8;
+  int64 amount_minor_units = 7;
+  int64 sender_new_balance_minor = 8;
   int64 receiver_new_balance_minor = 9;
 }

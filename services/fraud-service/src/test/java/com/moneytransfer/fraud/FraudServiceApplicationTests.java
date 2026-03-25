@@ -1,4 +1,4 @@
-package com.moneytransfer.fraudservice;
+package com.moneytransfer.fraud;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

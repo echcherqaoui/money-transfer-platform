@@ -37,6 +37,7 @@ services:
     container_name: transaction-mt-platform
     environment:
       PORT: ${TRANSACTION_SERVICE_PORT}
+      MANAGEMENT_PORT: ${MANAGEMENT_PORT}
 
       DATASOURCE_URL: jdbc:postgresql://${PG_SERVICE}:${PG_PORT}/${TRANSACTION_DB}
       DATASOURCE_USERNAME: ${PG_USER}
@@ -44,6 +45,9 @@ services:
 
       KC_INTERNAL_BASE_URL: ${KC_INTERNAL_BASE_URL}
       KC_REALM: ${KC_REALM}
+
+      KF_BOOTSTRAP_SERVERS: ${KF_BOOTSTRAP_SERVERS}
+      KF_TOPIC_PREFIX: ${KF_TOPIC_PREFIX}
       SC_REGISTRY_URL:  ${SC_REGISTRY_URL}
       KF_CONSUMER_GROUP_ID: ${KF_TRANSACTION_CONSUMER_GROUP_ID}
 
@@ -54,5 +58,38 @@ services:
       keycloak:
         condition: service_healthy
       postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  fraud:
+    build:
+      context: ../services/fraud-service
+    container_name: fraud-mt-platform
+    environment:
+      PORT: ${FRAUD_SERVICE_PORT}
+      MANAGEMENT_PORT: ${MANAGEMENT_PORT}
+
+      RD_HOST: ${RD_HOST}
+      RD_PORT: ${RD_PORT}
+      RD_PASSWORD: ${RD_PASSWORD}
+
+      KF_BOOTSTRAP_SERVERS: ${KF_BOOTSTRAP_SERVERS}
+      SC_REGISTRY_URL: ${SC_REGISTRY_URL}
+      KF_CONSUMER_GROUP_ID: ${KF_FRAUD_CONSUMER_GROUP_ID}
+      KF_TOPIC_PREFIX: ${KF_TOPIC_PREFIX}
+
+      FRAUD_AMOUNT_THRESHOLD: ${FRAUD_AMOUNT_THRESHOLD}
+      FRAUD_VELOCITY_MAX: ${FRAUD_VELOCITY_MAX}
+      FRAUD_WINDOW_MIN: ${FRAUD_WINDOW_MIN}
+
+      HMAC_SECRET_KEY: ${SECRET_KEY}
+    networks:
+      - money-transfer-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka-0:
+        condition: service_healthy
+      schema-registry:
         condition: service_healthy
     restart: unless-stopped
