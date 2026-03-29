@@ -34,7 +34,7 @@ spring:
       value.subject.name.strategy: io.confluent.kafka.serializers.subject.RecordNameStrategy
     consumer:
       group-id: ${KF_CONSUMER_GROUP_ID}
-      auto-offset-reset: earliest
+      auto-offset-reset: ${KF_AUTO_OFFSET_RESET:earliest}
       enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
@@ -58,7 +58,22 @@ management:
 # ── Kafka topic names ────────────────────────────────────────────────────────
 kafka:
   topics:
-    transfer-initiated: ${KF_TOPIC_PREFIX}.mtp.transaction.transfer.initiated.v1
+    # Transaction service events
+    transaction:
+      transfer-initiated: ${KF_TOPIC_PREFIX}.mtp.transaction.transfer.initiated.v1
+
+    # Fraud service events
+    fraud:
+      transfer-detected: ${KF_TOPIC_PREFIX}.fraud.transfer.detected.v1
+
+    # Wallet service events
+    wallet:
+      transfer-completed: ${KF_TOPIC_PREFIX}.wallet.transfer.completed.v1
+# ── deposit  ─────────────────────────────────────────────────────────────────
+wallet:
+  deposit:
+    max-single-deposit-minor-units: 10000000   # 1000.00
+    max-daily-deposit-minor-units:  50000000   # 5000.00
 
 # ── HMAC ─────────────────────────────────────────────────────────────────────
 app:

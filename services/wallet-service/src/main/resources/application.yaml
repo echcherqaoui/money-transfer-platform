@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: wallet-service
+    name: ${APP_NAME:wallet-service}
 
   datasource:
     hikari:
@@ -19,4 +19,74 @@ spring:
     database: postgresql
 
   flyway:
-    validate-on-migrate: true
+    enabled: true
+    locations: classpath:db/migration
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KC_INTERNAL_BASE_URL}/realms/${KC_REALM}/protocol/openid-connect/certs
+
+  kafka:
+    bootstrap-servers: ${KF_BOOTSTRAP_SERVERS}
+    properties:
+      schema.registry.url: ${SC_REGISTRY_URL}
+      value.subject.name.strategy: io.confluent.kafka.serializers.subject.RecordNameStrategy
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer
+      properties:
+        auto.register.schemas: false
+        use.latest.version: true
+
+    consumer:
+      group-id: ${KF_CONSUMER_GROUP_ID}
+      auto-offset-reset: ${KF_AUTO_OFFSET_RESET:earliest}
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer
+        auto.register.schemas: false
+        use.latest.version: true
+
+# Actuator — internal port, never publicly exposed
+management:
+  server:
+    port: ${MANAGEMENT_PORT}
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.moneytransfer.wallet: DEBUG
+
+# ── Kafka topic names ─────────────────────────────────────────────────────────
+kafka:
+  topics:
+    # Transaction service events
+    transaction:
+      transfer-initiated: ${KF_TOPIC_PREFIX}.mtp.transaction.transfer.initiated.v1
+
+    # Fraud service events
+    fraud:
+      transfer-detected: ${KF_TOPIC_PREFIX}.mtp.fraud.transfer.detected.v1
+      transfer-approved: ${KF_TOPIC_PREFIX}.mtp.fraud.transfer.approved.v1
+
+    # Wallet service events
+    wallet:
+      transfer-completed: ${KF_TOPIC_PREFIX}.mtp.wallet.transfer.completed.v1
+      transfer-failed: ${KF_TOPIC_PREFIX}.mtp.wallet.transfer.failed.v1
+
+# ── HMAC ──────────────────────────────────────────────────────────────────────
+app:
+  security:
+    hmac:
+      secret: ${HMAC_SECRET_KEY}

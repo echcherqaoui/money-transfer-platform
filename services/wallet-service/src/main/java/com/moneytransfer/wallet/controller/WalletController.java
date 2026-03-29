@@ -1,0 +1,45 @@
+package com.moneytransfer.wallet.controller;
+
+import com.moneytransfer.wallet.dto.WalletResponse;
+import com.moneytransfer.wallet.service.ISseEmitterService;
+import com.moneytransfer.wallet.service.IWalletService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE;
+
+@RestController
+@RequestMapping("/wallets")
+@RequiredArgsConstructor
+public class WalletController {
+
+    private final IWalletService walletQueryService;
+    private final ISseEmitterService sseEmitterService;
+
+    @PostMapping("/me")
+    @ResponseStatus(CREATED)
+    public ResponseEntity<WalletResponse> createWallet() {
+        return ResponseEntity
+              .status(CREATED)
+              .body(walletQueryService.createWallet());
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<WalletResponse> getMyWallet() {
+        return ResponseEntity.ok(walletQueryService.getMyWallet());
+    }
+
+    @GetMapping(value = "/me/stream", produces = TEXT_EVENT_STREAM_VALUE)
+    public ResponseEntity<SseEmitter> streamBalance() {
+        return ResponseEntity.ok()
+              .header("X-Accel-Buffering", "no")
+              .body(sseEmitterService.register());
+    }
+}

@@ -93,3 +93,33 @@ services:
       schema-registry:
         condition: service_healthy
     restart: unless-stopped
+
+  wallet:
+    build:
+      context: ../services/wallet-service
+    container_name: wallet-mt-platform
+    environment:
+      PORT: ${WALLET_SERVICE_PORT}
+      MANAGEMENT_PORT: ${MANAGEMENT_PORT}
+
+      DATASOURCE_URL: jdbc:postgresql://${PG_SERVICE}:${PG_PORT}/${WALLET_DB}
+      DATASOURCE_USERNAME: ${PG_USER}
+      DATASOURCE_PASSWORD: ${PG_PASSWORD}
+
+      KC_INTERNAL_BASE_URL: ${KC_INTERNAL_BASE_URL}
+      KC_REALM: ${KC_REALM}
+
+      KF_BOOTSTRAP_SERVERS: ${KF_BOOTSTRAP_SERVERS}
+      KF_TOPIC_PREFIX: ${KF_TOPIC_PREFIX}
+      SC_REGISTRY_URL:  ${SC_REGISTRY_URL}
+      KF_CONSUMER_GROUP_ID: ${KF_WALLET_CONSUMER_GROUP_ID}
+
+      HMAC_SECRET_KEY: ${SECRET_KEY}
+    networks:
+      - money-transfer-net
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped

@@ -1,4 +1,4 @@
-package com.moneytransfer.transaction.service;
+package com.moneytransfer.transaction.service.impl;
 
 import com.google.protobuf.Message;
 import com.google.protobuf.util.Timestamps;
@@ -7,8 +7,8 @@ import com.moneytransfer.security.service.ISignatureService;
 import com.moneytransfer.transaction.model.OutboxEvent;
 import com.moneytransfer.transaction.model.Transaction;
 import com.moneytransfer.transaction.repository.OutboxEventRepository;
+import com.moneytransfer.transaction.service.ITransactionOutboxService;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -17,17 +17,27 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
-public class TransactionOutboxService {
+public class TransactionOutboxServiceImpl implements ITransactionOutboxService {
 
     private final OutboxEventRepository outboxEventRepository;
     private final ISignatureService signatureService;
     private final KafkaProtobufSerializer<Message> serializer;
-    private static final String EVENT_TYPE_INITIATED = "initiated.v1";
-    
-    @Value("${kafka.topics.transfer-initiated}")
-    private String transferInitiatedTopic;
+    private final String transferInitiatedTopic;
 
+    private static final String AGGREGATE_TYPE = "Transaction";
+    private static final String EVENT_TYPE_INITIATED = "initiated.v1";
+
+    public TransactionOutboxServiceImpl(OutboxEventRepository outboxEventRepository,
+                                        ISignatureService signatureService,
+                                        KafkaProtobufSerializer<Message> serializer,
+                                        @Value("${kafka.topics.transaction.transfer-initiated}") String transferInitiatedTopic) {
+        this.outboxEventRepository = outboxEventRepository;
+        this.signatureService = signatureService;
+        this.serializer = serializer;
+        this.transferInitiatedTopic = transferInitiatedTopic;
+    }
+
+    @Override
     public void publishTransferInitiated(Transaction transaction) {
         String eventId = UUID.randomUUID().toString();
         Instant now = Instant.now();
@@ -56,7 +66,7 @@ public class TransactionOutboxService {
         byte[] serialized = serializer.serialize(transferInitiatedTopic, proto);
 
         OutboxEvent outboxEvent = new OutboxEvent()
-                .setAggregateType("Transaction")
+                .setAggregateType(AGGREGATE_TYPE)
                 .setAggregateId(transaction.getId())
                 .setEventType(EVENT_TYPE_INITIATED)
                 .setPayload(serialized);

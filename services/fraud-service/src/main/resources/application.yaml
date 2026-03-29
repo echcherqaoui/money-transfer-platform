@@ -18,7 +18,7 @@ spring:
       value.subject.name.strategy: io.confluent.kafka.serializers.subject.RecordNameStrategy
     consumer:
       group-id: ${KF_CONSUMER_GROUP_ID}
-      auto-offset-reset: earliest
+      auto-offset-reset: ${KF_AUTO_OFFSET_RESET:earliest}
       enable-auto-commit: false   # MANUAL_IMMEDIATE ack — never auto-commit
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
@@ -39,12 +39,22 @@ management:
     health:
       show-details: always
 
+
+logging:
+  level:
+    com.moneytransfer.fraud: DEBUG
+
 # ── Kafka topic names ────────────────────────────────────────────────────────
 kafka:
   topics:
-    transfer-initiated: ${KF_TOPIC_PREFIX}.mtp.transaction.transfer.initiated.v1
-    transfer-approved: ${KF_TOPIC_PREFIX}.mtp.transaction.transfer.approved.v1
-    fraud-detected: ${KF_TOPIC_PREFIX}.mtp.transaction.transfer.fraud.detected.v1
+    # Transaction service events
+    transaction:
+      transfer-initiated: ${KF_TOPIC_PREFIX}.mtp.transaction.transfer.initiated.v1
+
+    # Fraud service events
+    fraud:
+      transfer-detected: ${KF_TOPIC_PREFIX}.mtp.fraud.transfer.detected.v1
+      transfer-approved: ${KF_TOPIC_PREFIX}.mtp.fraud.transfer.approved.v1
 
 # ── Fraud rules ──────────────────────────────────────────────────────────────
 fraud:

@@ -77,7 +77,7 @@ spring:
                 - Path=/transfers/**
 
             - id: wallet-service
-              uri: http://wallet-service:${WALLET_SERVICE_PORT}
+              uri: http://wallet:${WALLET_SERVICE_PORT}
               predicates:
                 - Path=/wallets/**
 

@@ -32,8 +32,8 @@ public class KafkaFraudEventProducer implements IFraudEventProducer {
 
     public KafkaFraudEventProducer(KafkaTemplate<String, Object> kafkaTemplate,
                                    ISignatureService signatureService,
-                                   @Value("${kafka.topics.transfer-approved}") String transferApprovedTopic,
-                                   @Value("${kafka.topics.fraud-detected}") String fraudDetectedTopic) {
+                                   @Value("${kafka.topics.fraud.transfer-approved}") String transferApprovedTopic,
+                                   @Value("${kafka.topics.fraud.transfer-detected}") String fraudDetectedTopic) {
         this.kafkaTemplate = kafkaTemplate;
         this.signatureService = signatureService;
         this.transferApprovedTopic = transferApprovedTopic;
@@ -77,7 +77,6 @@ public class KafkaFraudEventProducer implements IFraudEventProducer {
         }
     }
 
-    //Publishes FraudDetected.
     @Override
     public void publishFraudDetected(String transactionId,
                                      String senderId,
@@ -109,7 +108,6 @@ public class KafkaFraudEventProducer implements IFraudEventProducer {
         log.debug("FraudDetected sent: transaction={}", transactionId);
     }
 
-    //Publishes TransferApproved.
     @Override
     public void publishTransferApproved(String transactionId) {
         String eventId = UUID.randomUUID().toString();

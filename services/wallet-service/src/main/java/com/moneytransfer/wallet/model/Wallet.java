@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,7 +23,7 @@ import java.util.UUID;
 @Entity
 @Table(
       name = "wallets",
-      indexes = { @Index(name = "idx_wallets_user_id",   columnList = "user_id") }
+      indexes = {@Index(name = "idx_wallets_user_id", columnList = "user_id")}
 )
 @Getter
 @Setter
@@ -48,4 +49,24 @@ public class Wallet {
     @LastModifiedDate
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private OffsetDateTime updatedAt;
+
+
+    @PrePersist
+    private void setDefault(){
+        this.balance = BigDecimal.ZERO;
+    }
+
+    public void debit(BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0)
+            throw new IllegalArgumentException("Amount must be positive");
+
+        this.balance = this.balance.subtract(amount);
+    }
+
+    public void credit(BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0)
+            throw new IllegalArgumentException("Amount must be positive");
+
+        this.balance = this.balance.add(amount);
+    }
 }
