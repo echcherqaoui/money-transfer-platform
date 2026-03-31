@@ -24,4 +24,5 @@ message MoneyTransferInitiated {
   string sender_id = 5;
   string receiver_id = 6;
   int64 amount_minor_units = 7;
+  google.protobuf.Timestamp expires_at = 8; // NEW: Expiration timestamp (created_at + timeout - buffer)
 }

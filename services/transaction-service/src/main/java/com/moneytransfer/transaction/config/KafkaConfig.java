@@ -13,6 +13,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 
@@ -34,11 +37,33 @@ public class KafkaConfig {
     public KafkaProtobufSerializer<Message> kafkaProtobufSerializer() {
         KafkaProtobufSerializer<Message> serializer = new KafkaProtobufSerializer<>();
 
-        Map<String, Object> config = new HashMap<>(kafkaProperties.getProperties());
-
         // Ensure the serializer knows where the Registry is
-        serializer.configure(config, false);
+        serializer.configure(
+              new HashMap<>(kafkaProperties.getProperties()),
+              false
+        );
+
         return serializer;
+    }
+
+    // ── DLT Producer ──────────────────────────────────────────────
+    @Bean
+    public KafkaTemplate<String, Object> dlqKafkaTemplate() {
+        return new KafkaTemplate<>(
+              new DefaultKafkaProducerFactory<>(
+                    kafkaProperties.buildProducerProperties(null)
+              )
+        );
+    }
+
+    @Bean
+    public DeadLetterPublishingRecoverer deadLetterPublishingRecoverer(KafkaTemplate<String, Object> dlqKafkaTemplate) {
+        return new DeadLetterPublishingRecoverer(dlqKafkaTemplate);
+    }
+
+    @Bean
+    public DefaultErrorHandler defaultErrorHandler(DeadLetterPublishingRecoverer deadLetterPublishingRecoverer) {
+        return new DefaultErrorHandler(deadLetterPublishingRecoverer);
     }
 
     // ── Consumers ─────────────────────────────────────────────────

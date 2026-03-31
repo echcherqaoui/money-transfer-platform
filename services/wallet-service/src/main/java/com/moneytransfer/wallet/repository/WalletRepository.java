@@ -18,7 +18,6 @@ public interface WalletRepository extends JpaRepository<Wallet, UUID> {
 
     boolean existsByUserId(UUID userId);
 
-
     /**
      * Pessimistic write lock — prevents concurrent balance updates
      * for the same wallet within the same transfer settlement.

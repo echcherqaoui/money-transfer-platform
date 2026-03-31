@@ -12,7 +12,7 @@ public class TransactionNotFoundException extends BaseCustomException {
         super(errorCode, args);
     }
 
-    public TransactionNotFoundException(UUID bookingId) {
-        super(TRANSACTION_NOT_FOUND, bookingId);
+    public TransactionNotFoundException(UUID transactionId) {
+        super(TRANSACTION_NOT_FOUND, transactionId);
     }
 }

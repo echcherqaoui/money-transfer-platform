@@ -19,11 +19,15 @@
         <!-- Internal -->
         <dependency>
             <groupId>com.moneytransfer</groupId>
-            <artifactId>transfer-api-contract</artifactId>
+            <artifactId>common-exceptions</artifactId>
         </dependency>
         <dependency>
             <groupId>com.moneytransfer</groupId>
             <artifactId>common-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.moneytransfer</groupId>
+            <artifactId>transfer-api-contract</artifactId>
         </dependency>
 
         <!-- Web -->
@@ -91,12 +95,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
-        </dependency>
-
-        <!-- common-exceptions — GlobalExceptionHandler -->
-        <dependency>
-            <groupId>com.moneytransfer</groupId>
-            <artifactId>common-exceptions</artifactId>
         </dependency>
     </dependencies>
 

@@ -17,8 +17,8 @@ public class RedisIdempotencyGuard implements IIdempotencyGuard {
     private static final String KEY_PREFIX = "idempotency:fraud:";
 
     public RedisIdempotencyGuard(StringRedisTemplate redisTemplate,
-                            DefaultRedisScript<Long> setIdempotencyKeyScript,
-                            @Value("${fraud.idempotency.ttl-seconds:86400}") long ttlSeconds) {
+                                 DefaultRedisScript<Long> setIdempotencyKeyScript,
+                                 @Value("${fraud.idempotency.ttl-seconds:86400}") long ttlSeconds) {
         this.redisTemplate = redisTemplate;
         this.setIdempotencyKeyScript = setIdempotencyKeyScript;
         this.ttlSeconds = ttlSeconds;
@@ -31,10 +31,10 @@ public class RedisIdempotencyGuard implements IIdempotencyGuard {
     @Override
     public boolean isFirstOccurrence(String eventId) {
         Long result = redisTemplate.execute(
-                setIdempotencyKeyScript,
-                List.of(KEY_PREFIX + eventId),
-                "PENDING",
-                String.valueOf(ttlSeconds)
+              setIdempotencyKeyScript,
+              List.of(KEY_PREFIX + eventId),
+              "PENDING",
+              String.valueOf(ttlSeconds)
         );
 
         return Long.valueOf(1L).equals(result);

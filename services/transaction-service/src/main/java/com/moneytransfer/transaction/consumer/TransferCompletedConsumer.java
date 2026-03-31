@@ -3,9 +3,10 @@ package com.moneytransfer.transaction.consumer;
 import com.moneytransfer.contract.TransferCompleted;
 import com.moneytransfer.exception.core.EventSecurityException;
 import com.moneytransfer.security.service.ISignatureService;
-import com.moneytransfer.transaction.service.TransactionService;
+import com.moneytransfer.transaction.service.ITransactionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
@@ -18,34 +19,38 @@ import static com.moneytransfer.transaction.enums.TransactionStatus.COMPLETED;
 @Slf4j
 public class TransferCompletedConsumer {
 
-    private final TransactionService transactionService;
+    private final ITransactionService transactionService;
     private final ISignatureService signatureService;
 
-/*    @KafkaListener(
-            topics = "${topic}",
-            groupId = "${spring.kafka.consumer.group-id}",
-            containerFactory = "transferCompletedListenerFactory"
-    )*/
-    public void consume(TransferCompleted event, Acknowledgment ack) {
-        log.info("Received TransferCompleted for transaction: {}", event.getTransactionId());
-
-        // Verify HMAC signature — reject forged events
+    private void verifySignatureOrFail(TransferCompleted event) {
         boolean valid = signatureService.verify(
-                event.getEventId(),
-                event.getTransactionId(),
-                String.valueOf(event.getOccurredAt().getSeconds()),
-                event.getSignature()
+              event.getEventId(),
+              event.getTransactionId(),
+              String.valueOf(event.getOccurredAt().getSeconds()),
+              event.getSignature()
         );
 
         if (!valid) {
             log.error("Invalid signature on TransferCompleted event: {} — discarding", event.getEventId());
             throw new EventSecurityException();
         }
+    }
+
+    @KafkaListener(
+          topics = "${kafka.topics.wallet.transfer-completed}",
+          groupId = "${spring.kafka.consumer.group-id}",
+          containerFactory = "transferCompletedListenerFactory"
+    )
+    public void consume(TransferCompleted event, Acknowledgment ack) {
+        log.info("Received TransferCompleted for transaction: {}", event.getTransactionId());
+
+        // Verify HMAC signature — reject forged events
+        verifySignatureOrFail(event);
 
         // Update transaction status to COMPLETED
         transactionService.updateStatus(
-                UUID.fromString(event.getTransactionId()),
-                COMPLETED
+              UUID.fromString(event.getTransactionId()),
+              COMPLETED
         );
 
         ack.acknowledge();

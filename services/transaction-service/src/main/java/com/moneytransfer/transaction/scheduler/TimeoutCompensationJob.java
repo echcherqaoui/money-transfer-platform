@@ -1,15 +1,16 @@
 package com.moneytransfer.transaction.scheduler;
 
-import com.moneytransfer.transaction.enums.TransactionStatus;
+import com.moneytransfer.transaction.properties.TransactionProperties;
 import com.moneytransfer.transaction.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+
+import static com.moneytransfer.transaction.enums.TransactionStatus.EXPIRED;
 
 @Component
 @RequiredArgsConstructor
@@ -17,24 +18,23 @@ import java.time.OffsetDateTime;
 public class TimeoutCompensationJob {
 
     private final TransactionRepository transactionRepository;
-
-    @Value("${transaction.timeout.minutes:10}")
-    private int timeoutMinutes;
+    private final TransactionProperties transactionProperties;
 
     // Runs every 1 minute — checks for PENDING transactions older than timeoutMinutes
     @Scheduled(fixedDelayString = "PT1M")
     @Transactional
     public void markStuckTransactionsFailed() {
+        long timeoutMinutes = transactionProperties.getTimeoutMinutes();
         OffsetDateTime threshold = OffsetDateTime.now().minusMinutes(timeoutMinutes);
 
         int updated = transactionRepository.markStuckTransactionsAs(
-                TransactionStatus.FAILED,
-                threshold
+              EXPIRED,
+              threshold
         );
 
         if (updated > 0)
             log.warn(
-                  "Timeout compensation: marked {} stuck PENDING transaction(s) as FAILED (older than {} minutes)",
+                  "Timeout compensation: marked {} stuck PENDING transaction(s) as EXPIRED (older than {} minutes)",
                   updated,
                   timeoutMinutes
             );

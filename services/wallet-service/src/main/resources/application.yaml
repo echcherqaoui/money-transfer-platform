@@ -33,13 +33,12 @@ spring:
     properties:
       schema.registry.url: ${SC_REGISTRY_URL}
       value.subject.name.strategy: io.confluent.kafka.serializers.subject.RecordNameStrategy
+      auto.register.schemas: false
+      use.latest.version: true
 
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer
-      properties:
-        auto.register.schemas: false
-        use.latest.version: true
 
     consumer:
       group-id: ${KF_CONSUMER_GROUP_ID}
@@ -49,8 +48,6 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
         spring.deserializer.value.delegate.class: io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer
-        auto.register.schemas: false
-        use.latest.version: true
 
 # Actuator — internal port, never publicly exposed
 management:
@@ -84,6 +81,13 @@ kafka:
     wallet:
       transfer-completed: ${KF_TOPIC_PREFIX}.mtp.wallet.transfer.completed.v1
       transfer-failed: ${KF_TOPIC_PREFIX}.mtp.wallet.transfer.failed.v1
+
+
+# ── deposit  ─────────────────────────────────────────────────────────────────
+wallet:
+  deposit:
+    max-single-deposit-minor-units: 10000000   # 1000.00
+    max-daily-deposit-minor-units:  50000000   # 5000.00
 
 # ── HMAC ──────────────────────────────────────────────────────────────────────
 app:

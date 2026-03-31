@@ -2,7 +2,7 @@ package com.moneytransfer.transaction.controller;
 
 import com.moneytransfer.transaction.dto.TransferRequest;
 import com.moneytransfer.transaction.dto.TransferResponse;
-import com.moneytransfer.transaction.service.TransactionService;
+import com.moneytransfer.transaction.service.ITransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +22,7 @@ import static org.springframework.http.HttpStatus.CREATED;
 @RequiredArgsConstructor
 public class TransferController {
 
-    private final TransactionService transactionService;
+    private final ITransactionService transactionService;
 
     @PostMapping
     public ResponseEntity<TransferResponse> initiateTransfer(@Valid @RequestBody TransferRequest request) {

@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -34,7 +36,14 @@ public class FraudDetectionServiceImpl implements IFraudDetectionService {
         int maxTransactions = fraudProperties.getVelocity().getMaxTransactions();
         int windowMinutes = fraudProperties.getVelocity().getWindowMinutes();
 
-        if (velocityTracker.recordAndCheckVelocity(senderId, eventId, maxTransactions, windowMinutes))
+        boolean isExceeded = velocityTracker.recordAndCheckVelocity(
+              senderId,
+              eventId,
+              maxTransactions,
+              windowMinutes
+        );
+
+        if (isExceeded)
             return String.format(
                   "Sender %s exceeded %d transfers within %d-minute window",
                   senderId,
@@ -61,6 +70,26 @@ public class FraudDetectionServiceImpl implements IFraudDetectionService {
         String transactionId = event.getTransactionId();
         String senderId = event.getSenderId();
 
+        Instant expiresAt = Instant.ofEpochSecond(
+              event.getExpiresAt().getSeconds(),
+              event.getExpiresAt().getNanos()
+        );
+
+        if (Instant.now().isAfter(expiresAt)) {
+            log.warn(
+                  "[EXPIRED-ON-ARRIVAL] transaction={} — publishing FraudDetected to close wallet pending",
+                  transactionId
+            );
+
+            fraudEventProducer.publishFraudDetected(
+                  transactionId,
+                  senderId,
+                  "transaction_expired"
+            );
+            // No velocity recorded
+            return;
+        }
+
         String fraudReason = detectFraud(event, senderId);
 
         if (fraudReason != null) {
@@ -71,9 +100,12 @@ public class FraudDetectionServiceImpl implements IFraudDetectionService {
                   fraudReason
             );
 
-            fraudEventProducer.publishFraudDetected(transactionId, senderId, fraudReason);
+            fraudEventProducer.publishFraudDetected(
+                  transactionId,
+                  senderId,
+                  fraudReason
+            );
         } else {
-
             log.info(
                   "[APPROVED] transaction={} sender={}",
                   transactionId,

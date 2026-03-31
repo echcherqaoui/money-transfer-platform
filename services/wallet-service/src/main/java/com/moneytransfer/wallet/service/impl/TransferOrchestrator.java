@@ -3,17 +3,22 @@ package com.moneytransfer.wallet.service.impl;
 import com.moneytransfer.contract.FraudDetected;
 import com.moneytransfer.contract.MoneyTransferInitiated;
 import com.moneytransfer.contract.TransferApproved;
+import com.moneytransfer.wallet.enums.PendingStatus;
 import com.moneytransfer.wallet.idempotency.IIdempotencyGuard;
 import com.moneytransfer.wallet.service.ISettlementService;
 import com.moneytransfer.wallet.service.ITransferOrchestrator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 
 import static com.moneytransfer.wallet.enums.PendingStatus.DISCARDED;
+import static com.moneytransfer.wallet.enums.PendingStatus.INITIATED;
 
 @Service
 @RequiredArgsConstructor
@@ -24,20 +29,49 @@ public class TransferOrchestrator implements ITransferOrchestrator {
     private final PendingTransferService pendingTransferService;
     private final ISettlementService settlementService;
 
+    @NotNull
+    private UUID getUuid(String value) {
+        return UUID.fromString(value);
+    }
+
     @Transactional
     @Override
     public void handleInitiated(MoneyTransferInitiated event) {
-        if (idempotencyGuard.isProcessed(event.getEventId())){
+        if (idempotencyGuard.isProcessed(event.getEventId())) {
             log.debug("Duplicate MoneyTransferInitiated skipped: eventId={}", event.getEventId());
             return;
         }
 
-        pendingTransferService.store(
-            UUID.fromString(event.getTransactionId()),
-            UUID.fromString(event.getSenderId()),
-            UUID.fromString(event.getReceiverId()),
-            event.getAmountMinorUnits()
+        Instant expiresAt = Instant.ofEpochSecond(
+              event.getExpiresAt().getSeconds(),
+              event.getExpiresAt().getNanos()
         );
+
+        PendingStatus status = Instant.now().isAfter(expiresAt)? DISCARDED: INITIATED;
+
+        BigDecimal amount = BigDecimal.valueOf(event.getAmountMinorUnits()).movePointLeft(4);
+
+        pendingTransferService.storeAs(
+              getUuid(event.getTransactionId()),
+              getUuid(event.getSenderId()),
+              getUuid(event.getReceiverId()),
+              amount,
+              status
+        );
+
+        if (status == DISCARDED)
+            log.warn(
+                  "[EXPIRED-ON-ARRIVAL] transaction={} amount={} - Stored to block late settlements.",
+                  event.getTransactionId(),
+                  amount
+            );
+        else
+            log.info(
+                  "[PENDING-STORED] transaction={} sender={} amount={}",
+                  event.getTransactionId(),
+                  event.getSenderId(),
+                  amount
+            );
     }
 
     @Transactional
@@ -48,7 +82,7 @@ public class TransferOrchestrator implements ITransferOrchestrator {
             return;
         }
 
-        settlementService.settle(UUID.fromString(event.getTransactionId()));
+        settlementService.settle(getUuid(event.getTransactionId()));
     }
 
     @Transactional
@@ -59,7 +93,7 @@ public class TransferOrchestrator implements ITransferOrchestrator {
             return;
         }
 
-        UUID transactionId = UUID.fromString(event.getTransactionId());
+        UUID transactionId = getUuid(event.getTransactionId());
 
         int updatedCount = pendingTransferService.atomicStatusUpdate(transactionId, DISCARDED);
 

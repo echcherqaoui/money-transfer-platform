@@ -6,7 +6,6 @@ import com.moneytransfer.wallet.model.PendingTransfer;
 import com.moneytransfer.wallet.repository.PendingTransferRepository;
 import com.moneytransfer.wallet.service.IPendingTransferService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,18 +17,16 @@ import static com.moneytransfer.wallet.exception.enums.WalletErrorCode.PENDING_T
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class PendingTransferService implements IPendingTransferService {
     private final PendingTransferRepository pendingTransferRepository;
 
     @Transactional
     @Override
-    public void store(UUID transactionId,
-                      UUID senderId,
-                      UUID receiverId,
-                      long amountMinorUnits) {
-
-        BigDecimal amount = BigDecimal.valueOf(amountMinorUnits).movePointLeft(4);
+    public void storeAs(UUID transactionId,
+                        UUID senderId,
+                        UUID receiverId,
+                        BigDecimal amount,
+                        PendingStatus status) {
 
         pendingTransferRepository.save(
               new PendingTransfer()
@@ -37,13 +34,7 @@ public class PendingTransferService implements IPendingTransferService {
                     .setSenderId(senderId)
                     .setReceiverId(receiverId)
                     .setAmount(amount)
-        );
-
-        log.info(
-              "[PENDING] transaction={} sender={} amount={}",
-              transactionId,
-              senderId,
-              amount
+                    .setStatus(status)
         );
     }
 

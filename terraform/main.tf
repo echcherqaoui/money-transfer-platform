@@ -62,6 +62,15 @@ resource "kafka_topic" "fraud_transfer_approved" {
   }
 }
 
+resource "kafka_topic" "fraud_transfer_detected_dlt" {
+  name               = "${local.prefix}.fraud.transfer.detected.v1-dlt"
+  replication_factor = 1
+  partitions         = 1
+  config = {
+    "cleanup.policy" = "delete"
+    "retention.ms"   = local.retention_7_days
+  }
+}
 
 resource "kafka_topic" "fraud_transfer_approved_dlt" {
   name               = "${local.prefix}.fraud.transfer.approved.v1-dlt"
@@ -101,6 +110,27 @@ resource "kafka_topic" "wallet_transfer_failed" {
 
   lifecycle {
     prevent_destroy = true
+  }
+}
+
+resource "kafka_topic" "wallet_transfer_completed_dlt" {
+  name               = "${local.prefix}.wallet.transfer.completed.v1-dlt"
+  replication_factor = 1
+  partitions         = 1
+  config = {
+    "cleanup.policy" = "delete"
+    "retention.ms"   = local.retention_7_days
+  }
+}
+
+
+resource "kafka_topic" "wallet_transfer_failed_dlt" {
+  name               = "${local.prefix}.wallet.transfer.failed.v1-dlt"
+  replication_factor = 1
+  partitions         = 1
+  config = {
+    "cleanup.policy" = "delete"
+    "retention.ms"   = local.retention_7_days
   }
 }
 
