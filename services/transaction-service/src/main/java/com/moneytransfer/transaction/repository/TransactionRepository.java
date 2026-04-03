@@ -13,22 +13,23 @@ import java.util.UUID;
 
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
     // Bulk status update
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("""
-            UPDATE Transaction t SET t.status = :newStatus, t.updatedAt = CURRENT_TIMESTAMP
-                WHERE t.status = 'PENDING'
-                AND t.createdAt < :threshold
-           """)
+           UPDATE Transaction t SET t.status = :newStatus, t.updatedAt = CURRENT_TIMESTAMP
+               WHERE t.status = 'PENDING'
+               AND t.createdAt < :threshold
+          """)
     int markStuckTransactionsAs(@Param("newStatus") TransactionStatus newStatus,
                                 @Param("threshold") OffsetDateTime threshold);
 
+
     @Transactional
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("""
-            UPDATE Transaction t SET t.status = :newStatus, t.updatedAt = CURRENT_TIMESTAMP
-                WHERE t.id = :transactionId
-                AND t.status = :expectedStatus
-           """)
+           UPDATE Transaction t SET t.status = :newStatus, t.updatedAt = CURRENT_TIMESTAMP
+               WHERE t.id = :transactionId
+               AND t.status = :expectedStatus
+          """)
     int atomicStatusUpdate(@Param("newStatus") TransactionStatus newStatus,
                            @Param("transactionId") UUID transactionId,
                            @Param("expectedStatus") TransactionStatus expectedStatus);

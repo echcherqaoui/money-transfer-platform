@@ -1,0 +1,1 @@
+ALTER TYPE transaction_status ADD VALUE 'EXPIRED';

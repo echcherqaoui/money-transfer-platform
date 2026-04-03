@@ -55,8 +55,8 @@ public class Transaction {
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "transaction_status")
     @JdbcTypeCode(NAMED_ENUM)
+    @Column(nullable = false, columnDefinition = "transaction_status")
     private TransactionStatus status;
 
     @CreatedDate

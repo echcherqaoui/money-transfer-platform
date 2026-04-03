@@ -1,0 +1,57 @@
+server:
+  port: 0 # Random port for tests
+
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:16:///wallet_db # Using Testcontainers JDBC support
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+
+  sql:
+    init:
+      mode: never # Let Flyway handle it
+
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+    consumer:
+      auto-offset-reset: earliest
+      group-id: wallet-test-group
+      enable-auto-commit: false
+    properties:
+      # This allows the mock registry to create the subject on the fly
+      auto.register.schemas: true
+      # This prevents the 'Subject Not Found' error by not looking for an existing version
+      use.latest.version: false
+      # Ensure the mock registry is correctly identified
+      schema.registry.url: "mock://test-registry"
+      value.subject.name.strategy: io.confluent.kafka.serializers.subject.RecordNameStrategy
+
+kafka:
+  topics:
+    transaction:
+      transfer-initiated: test.mtp.transaction.transfer.initiated.v1
+    fraud:
+      transfer-approved: test.mtp.transaction.transfer.approved.v1
+      transfer-detected: test.mtp.transaction.transfer.fraud.detected.v1
+    wallet:
+      transfer-completed: test.mtp.transaction.transfer.completed.v1
+      transfer-failed: test.mtp.transaction.transfer.failed.v1
+
+logging:
+  level:
+    com.moneytransfer: DEBUG
+    org.springframework.kafka: WARN
+    org.apache.kafka: WARN
+
+management:
+  server:
+    port: 0
+
+wallet:
+  deposit:
+    max-single-deposit-minor-units: 5_000_000
+    max-daily-deposit-minor-units: 10_000_000
+
+HMAC_SECRET_KEY: "super-secret-key-for-testing"
+KF_TOPIC_PREFIX: test
+KC_INTERNAL_BASE_URL: http://localhost:8443
+KC_REALM: test-realm

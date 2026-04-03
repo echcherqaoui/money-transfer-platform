@@ -21,7 +21,6 @@ import java.time.OffsetDateTime;
 @EntityListeners(AuditingEntityListener.class)
 public class ProcessedEvent {
     @Id
-    @Column(name = "event_id")
     private String eventId;
 
     @CreatedDate

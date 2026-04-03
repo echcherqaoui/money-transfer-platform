@@ -29,8 +29,13 @@ public class SseEmitterService implements ISseEmitterService {
         UUID currentUserId = JwtUtils.extractUserId();
         SseEmitter emitter = new SseEmitter(0L);
 
+        // Check if there's an existing connection
+        SseEmitter oldEmitter = emitters.put(currentUserId, emitter);
+        if (oldEmitter != null)
+            oldEmitter.complete(); // Close the previous connection
+
         emitter.onCompletion(() -> {
-            emitters.remove(currentUserId);
+            emitters.remove(currentUserId, emitter);
             log.debug("SSE connection completed for user={}", currentUserId);
         });
 
@@ -57,18 +62,18 @@ public class SseEmitterService implements ISseEmitterService {
     @Override
     public void pushBalanceUpdate(UUID userId, BigDecimal balance) {
         SseEmitter emitter = emitters.get(userId);
-        if (emitter == null) return;
-
-        try {
-            emitter.send(
-                  SseEmitter.event()
-                        .name("balance-update")
-                        .data(new BalanceUpdateEvent(userId, balance))
-            );
-        } catch (IOException e) {
-            log.debug("Failed to push SSE to user={}, removing emitter", userId);
-            emitters.remove(userId);
-            emitter.completeWithError(e);
+        if (emitter != null) {
+            try {
+                emitter.send(
+                      SseEmitter.event()
+                            .name("balance")
+                            .data(new BalanceUpdateEvent(userId, balance))
+                );
+            } catch (IOException | IllegalStateException e) {
+                log.debug("Failed to push SSE to user={}, removing emitter", userId);
+                emitters.remove(userId);
+                emitter.completeWithError(e);
+            }
         }
     }
 }

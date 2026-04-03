@@ -13,18 +13,20 @@ import org.springframework.transaction.annotation.Transactional;
 public class DbIdempotencyGuard implements IIdempotencyGuard {
     
     private final ProcessedEventRepository processedEventRepository;
-    
+
     /**
      * @return true if already processed (skip), false if newly recorded (proceed)
      */
     @Override
     @Transactional
     public boolean isProcessed(String eventId) {
+        // Check first. This does not poison the transaction.
+        if (processedEventRepository.existsById(eventId))
+            return true;
+
         try {
-            processedEventRepository.save(
-                  new ProcessedEvent()
-                        .setEventId(eventId)
-            );
+            // Atomic attempt
+            processedEventRepository.save(new ProcessedEvent().setEventId(eventId));
             return false;
         } catch (DataIntegrityViolationException e) {
             return true;

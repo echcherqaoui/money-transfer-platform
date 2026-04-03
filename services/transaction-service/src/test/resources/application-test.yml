@@ -1,0 +1,56 @@
+server:
+  port: 0
+
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:16:///transaction_db
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+
+  sql:
+    init:
+      mode: never
+
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+
+    consumer:
+      auto-offset-reset: earliest
+      group-id: transaction-test-group
+      enable-auto-commit: false
+    properties:
+      auto.register.schemas: true
+      use.latest.version: false
+      schema.registry.url: "mock://test-registry"
+      value.subject.name.strategy: io.confluent.kafka.serializers.subject.RecordNameStrategy
+
+transaction:
+  cleanup:
+    timeout-minutes: 2
+
+kafka:
+  topics:
+    transaction:
+      transfer-initiated: test.mtp.transaction.transfer.initiated.v1
+    fraud:
+      transfer-detected: test.mtp.fraud.transfer.detected.v1
+    wallet:
+      transfer-completed: test.mtp.wallet.transfer.completed.v1
+
+app:
+  security:
+    hmac:
+      secret: test-secret-key-for-testing-only
+
+logging:
+  level:
+    com.moneytransfer: DEBUG
+    org.springframework.kafka: WARN
+
+management:
+  server:
+    port: 0
+
+HMAC_SECRET_KEY: "super-secret-key-for-testing"
+KF_TOPIC_PREFIX: test
+KC_INTERNAL_BASE_URL: http://localhost:8443
+KC_REALM: test-realm

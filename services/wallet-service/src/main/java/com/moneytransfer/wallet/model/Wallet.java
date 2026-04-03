@@ -50,10 +50,9 @@ public class Wallet {
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private OffsetDateTime updatedAt;
 
-
     @PrePersist
-    private void setDefault(){
-        this.balance = BigDecimal.ZERO;
+    private void setDefault() {
+        if (this.balance == null) this.balance = BigDecimal.ZERO;
     }
 
     public void debit(BigDecimal amount) {

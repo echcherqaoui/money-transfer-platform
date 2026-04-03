@@ -40,7 +40,6 @@ public class DepositLimitService implements IDepositLimitService {
 
         if (depositedToday.add(amount).compareTo(limit) > 0)
             throw new WalletException(DAILY_DEPOSIT_LIMIT_EXCEEDED, depositProperties.getMaxDailyDepositMinorUnits());
-
     }
 
     @Override

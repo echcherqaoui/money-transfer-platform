@@ -48,11 +48,11 @@ public class TransactionServiceImpl implements ITransactionService {
               .setSenderId(senderId)
               .setStatus(PENDING);
 
-        transactionRepository.save(transaction);
+        Transaction savedTransaction = transactionRepository.save(transaction);
 
         // Delegates proto building + serialization + outbox persistence
         // Runs in the same @Transactional
-        outboxService.publishTransferInitiated(transaction);
+        outboxService.publishTransferInitiated(savedTransaction);
 
         return TransferResponse.from(transaction);
     }

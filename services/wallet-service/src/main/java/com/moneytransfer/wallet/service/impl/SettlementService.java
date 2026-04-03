@@ -1,14 +1,15 @@
 package com.moneytransfer.wallet.service.impl;
 
+import com.moneytransfer.wallet.dto.BalanceUpdateEvent;
 import com.moneytransfer.wallet.exception.WalletException;
 import com.moneytransfer.wallet.model.PendingTransfer;
 import com.moneytransfer.wallet.model.Wallet;
 import com.moneytransfer.wallet.repository.WalletRepository;
 import com.moneytransfer.wallet.service.ISettlementService;
-import com.moneytransfer.wallet.service.ISseEmitterService;
 import com.moneytransfer.wallet.service.IWalletOutboxService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +33,7 @@ public class SettlementService implements ISettlementService {
     private final WalletRepository walletRepository;
     private final PendingTransferService pendingTransferService;
     private final IWalletOutboxService walletOutboxService;
-    private final ISseEmitterService sseEmitterService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ── Private helpers ───────────────────────────────────────────
     private void handleInsufficientFunds(PendingTransfer pending,
@@ -133,9 +134,8 @@ public class SettlementService implements ISettlementService {
               toMinorUnits(receiverWallet.getBalance())
         );
 
-        // SSE push — best effort, outside transaction concern
-        sseEmitterService.pushBalanceUpdate(senderId, senderWallet.getBalance());
-        sseEmitterService.pushBalanceUpdate(receiverId, receiverWallet.getBalance());
+        eventPublisher.publishEvent(new BalanceUpdateEvent(senderId, senderWallet.getBalance()));
+        eventPublisher.publishEvent(new BalanceUpdateEvent(receiverId, receiverWallet.getBalance()));
 
         log.info(
               "[COMPLETED] transaction={} sender={} receiver={} amount={}",
