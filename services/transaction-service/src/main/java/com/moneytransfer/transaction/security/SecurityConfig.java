@@ -14,17 +14,18 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(s -> s
-                        .sessionCreationPolicy(STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health").permitAll()
-                        .anyRequest().authenticated()
-                )
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        // Zero-trust — every service verifies for itself.
-                        .jwt(jwt -> {})
-                )
-                .build();
+              .csrf(AbstractHttpConfigurer::disable)
+              .sessionManagement(s -> s
+                    .sessionCreationPolicy(STATELESS))
+              .authorizeHttpRequests(auth -> auth
+                    .requestMatchers("/actuator/prometheus", "/actuator/health").permitAll()
+                    .anyRequest().authenticated()
+              )
+              .oauth2ResourceServer(oauth2 -> oauth2
+                    // Zero-trust — every service verifies for itself.
+                    .jwt(jwt -> {
+                    })
+              )
+              .build();
     }
 }

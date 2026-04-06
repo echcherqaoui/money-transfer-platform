@@ -48,7 +48,7 @@ public class SecurityConfig {
               .sessionManagement(session ->
                     session.sessionCreationPolicy(STATELESS)
               ).authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/actuator/health").permitAll()
+                    .requestMatchers("/actuator/prometheus", "/actuator/health").permitAll()
                     .requestMatchers("/wallets/deposits/*").hasRole("ADMIN")
                     .anyRequest().authenticated()
               ).oauth2ResourceServer(oauth2 ->

@@ -35,8 +35,12 @@ public class SecurityConfig {
                     .csrfTokenRepository(CookieServerCsrfTokenRepository.withHttpOnlyFalse())
                     .csrfTokenRequestHandler(new ServerCsrfTokenRequestAttributeHandler())
               ).authorizeExchange(exchanges -> exchanges
-                    .pathMatchers("/actuator/health", "/login**", "/oauth2/**").permitAll()
-                    .pathMatchers("/actuator/**").hasRole("ACTUATOR")
+                    .pathMatchers(
+                          "/actuator/prometheus",
+                          "/actuator/health",
+                          "/login**",
+                          "/oauth2/**"
+                    ).permitAll()
                     .anyExchange().authenticated()
               )
               .oauth2Login(Customizer.withDefaults())

@@ -1,0 +1,41 @@
+scrape_configs:
+
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'api-gateway:8070' ]
+        labels:
+          namespace: 'development'
+    relabel_configs:
+      - source_labels: [job]
+        target_label: application
+
+  - job_name: 'transaction-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'transaction:8070' ]
+        labels:
+          namespace: 'development'
+    relabel_configs:
+      - source_labels: [job]
+        target_label: application
+
+  - job_name: 'wallet-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'wallet:8070' ]
+        labels:
+          namespace: 'development'
+    relabel_configs:
+      - source_labels: [job]
+        target_label: application
+
+  - job_name: 'fraud-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'fraud:8070' ]
+        labels:
+          namespace: 'development'
+    relabel_configs:
+      - source_labels: [job]
+        target_label: application

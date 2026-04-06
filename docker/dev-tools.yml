@@ -36,5 +36,76 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION}-distroless
+    container_name: prometheus-mt-platform
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - money-transfer-net
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION}
+    container_name: grafana-mt-platform
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - money-transfer-net
+    depends_on:
+      - prometheus
+      - tempo
+    restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:${TEMPO_VERSION}
+    container_name: tempo-mt-platform
+    user: root
+    ports:
+      - "${TEMPO_PORT}:3200"
+    volumes:
+      - ./tempo.yml:/etc/tempo.yml
+      - tempo_data:/tmp/tempo
+    command: [ "-config.file=/etc/tempo.yml" ]
+    networks:
+      - money-transfer-net
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:${LOKI_VERSION}
+    container_name: loki-mt-platform # Added a name for consistency
+    ports:
+      - "${LOKI_PORT}:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - money-transfer-net
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:${PROMTAIL_VERSION}
+    container_name: promtail-mt-platform
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - money-transfer-net
+    depends_on:
+      - loki
+    restart: unless-stopped
+
 volumes:
   pgadmin_data:
+  prometheus_data:
+  grafana_data:
+  tempo_data:

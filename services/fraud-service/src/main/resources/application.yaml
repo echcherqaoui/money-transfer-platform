@@ -34,11 +34,19 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info
+        include: health, info, prometheus, metrics
   endpoint:
     health:
       show-details: always
-
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  otlp:
+    tracing:
+      endpoint: http://tempo:4318/v1/traces
+  tracing:
+    sampling:
+      probability: 1.0
 
 logging:
   level:
