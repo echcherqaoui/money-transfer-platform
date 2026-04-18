@@ -1,5 +1,6 @@
 package com.moneytransfer.wallet.integration;
 
+import com.google.protobuf.Timestamp;
 import com.moneytransfer.wallet.model.OutboxEvent;
 import com.moneytransfer.wallet.model.PendingTransfer;
 import com.moneytransfer.wallet.model.Wallet;
@@ -18,6 +19,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -73,6 +76,13 @@ class WalletSettlementIntegrationTest {
         );
     }
 
+    private Timestamp getExpiresAt(){
+        Instant instant = Instant.now().plus(Duration.ofMinutes(10));
+        return Timestamp.newBuilder()
+              .setSeconds(instant.getEpochSecond())
+              .build();
+    }
+
     @Test
     @Transactional
     @DisplayName("Should settle transfer successfully and persist all changes atomically")
@@ -81,6 +91,7 @@ class WalletSettlementIntegrationTest {
         BigDecimal transferAmount = new BigDecimal("200.0000");
 
         Wallet updatedSender = walletRepository.findByUserId(senderId).orElseThrow();
+
 
         pendingTransferService.storeAs(
               transactionId,
@@ -91,7 +102,7 @@ class WalletSettlementIntegrationTest {
         );
 
         // When
-        settlementService.settle(transactionId);
+        settlementService.settle(transactionId, getExpiresAt());
 
         // Then - verify balances updated
         Wallet updatedReceiver = walletRepository.findByUserId(receiverId).orElseThrow();
@@ -130,7 +141,7 @@ class WalletSettlementIntegrationTest {
         );
 
         // When
-        settlementService.settle(transactionId);
+        settlementService.settle(transactionId, getExpiresAt());
 
         // Then - verify balances unchanged
         Wallet unchangedSender = walletRepository.findByUserId(senderId).orElseThrow();
@@ -170,7 +181,7 @@ class WalletSettlementIntegrationTest {
         BigDecimal initialReceiverBalance = receiverWallet.getBalance();
 
         // When
-        settlementService.settle(transactionId);
+        settlementService.settle(transactionId, getExpiresAt());
 
         // Then - verify NO changes
         Wallet unchangedSender = walletRepository.findByUserId(senderId).orElseThrow();
@@ -200,7 +211,7 @@ class WalletSettlementIntegrationTest {
         );
 
         // When - settle in transaction (locks acquired)
-        settlementService.settle(transactionId);
+        settlementService.settle(transactionId, getExpiresAt());
 
         Wallet updatedSender = walletRepository.findByUserId(senderId).orElseThrow();
         assertThat(updatedSender.getBalance()).isEqualByComparingTo("800.0000");
@@ -222,7 +233,7 @@ class WalletSettlementIntegrationTest {
         );
 
         // When
-        settlementService.settle(transactionId);
+        settlementService.settle(transactionId, getExpiresAt());
 
         // Then
         Wallet updatedSender = walletRepository.findByUserId(senderId).orElseThrow();

@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static com.moneytransfer.wallet.enums.PendingStatus.DISCARDED;
+import static com.moneytransfer.wallet.enums.PendingStatus.EXPIRED;
 import static com.moneytransfer.wallet.enums.PendingStatus.INITIATED;
 
 @Service
@@ -47,7 +48,7 @@ public class TransferOrchestrator implements ITransferOrchestrator {
               event.getExpiresAt().getNanos()
         );
 
-        PendingStatus status = Instant.now().isAfter(expiresAt)? DISCARDED: INITIATED;
+        PendingStatus status = Instant.now().isAfter(expiresAt)? EXPIRED: INITIATED;
 
         BigDecimal amount = BigDecimal.valueOf(event.getAmountMinorUnits()).movePointLeft(4);
 
@@ -59,7 +60,7 @@ public class TransferOrchestrator implements ITransferOrchestrator {
               status
         );
 
-        if (status == DISCARDED)
+        if (status == EXPIRED)
             log.warn(
                   "[EXPIRED-ON-ARRIVAL] transaction={} amount={} - Stored to block late settlements.",
                   event.getTransactionId(),
@@ -82,7 +83,7 @@ public class TransferOrchestrator implements ITransferOrchestrator {
             return;
         }
 
-        settlementService.settle(getUuid(event.getTransactionId()));
+        settlementService.settle(getUuid(event.getTransactionId()), event.getExpiresAt());
     }
 
     @Transactional

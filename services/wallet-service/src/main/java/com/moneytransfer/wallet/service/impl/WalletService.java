@@ -55,4 +55,11 @@ public class WalletService implements IWalletService {
         wallet.credit(amount);
         return walletRepository.save(wallet);
     }
+
+
+    @Transactional(readOnly = true)
+    @Override
+    public boolean hasWallet(UUID userId) {
+        return walletRepository.existsByUserId(userId);
+    }
 }

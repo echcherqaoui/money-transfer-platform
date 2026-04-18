@@ -1,14 +1,15 @@
 package com.moneytransfer.wallet.service.impl;
 
+import com.moneytransfer.wallet.dto.BalanceUpdateEvent;
 import com.moneytransfer.wallet.dto.WalletResponse;
 import com.moneytransfer.wallet.model.DepositLog;
 import com.moneytransfer.wallet.model.Wallet;
 import com.moneytransfer.wallet.repository.DepositLogRepository;
 import com.moneytransfer.wallet.service.IDepositLimitService;
 import com.moneytransfer.wallet.service.IDepositService;
-import com.moneytransfer.wallet.service.ISseEmitterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +24,7 @@ public class DepositServiceImpl implements IDepositService {
     private final DepositLogRepository depositLogRepository;
     private final WalletService walletService;
     private final IDepositLimitService limitService;
-    private final ISseEmitterService sseEmitterService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     @Override
@@ -38,7 +39,7 @@ public class DepositServiceImpl implements IDepositService {
                     .setAmount(amount)
         );
 
-        sseEmitterService.pushBalanceUpdate(wallet.getUserId(), wallet.getBalance());
+        eventPublisher.publishEvent(new BalanceUpdateEvent(wallet.getUserId(), wallet.getBalance()));
 
         log.info(
               "[DEPOSIT] user={} amount={} newBalance={}",

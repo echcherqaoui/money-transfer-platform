@@ -30,6 +30,10 @@
             <artifactId>common-security</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.moneytransfer</groupId>
+            <artifactId>common-outbox</artifactId>
+        </dependency>
         <!-- Web (SSE requires servlet) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

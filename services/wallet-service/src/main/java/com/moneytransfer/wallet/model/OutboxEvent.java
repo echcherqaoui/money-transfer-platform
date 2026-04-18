@@ -6,6 +6,7 @@ import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -22,13 +23,13 @@ import java.util.UUID;
       name = "outbox_event",
       indexes = {
             @Index(name = "idx_outbox_event_aggregate", columnList = "aggregate_type, aggregate_id"),
-            @Index(name = "idx_outbox_created_at", columnList = "created_at")
       }
 )
 @Getter
 @Setter
 @Accessors(chain = true)
 @EntityListeners(AuditingEntityListener.class)
+@IdClass(OutboxEventId.class)
 public class OutboxEvent {
 
     @Id
@@ -48,6 +49,7 @@ public class OutboxEvent {
     @Column(nullable = false, updatable = false, columnDefinition = "BYTEA")
     private byte[] payload;
 
+    @Id
     @CreatedDate
     @Column(nullable = false, updatable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private OffsetDateTime createdAt;

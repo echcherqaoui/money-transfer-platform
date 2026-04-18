@@ -4,5 +4,6 @@ public enum PendingStatus {
     INITIATED,
     COMPLETED,
     FAILED,
-    DISCARDED
+    DISCARDED,
+    EXPIRED
 }

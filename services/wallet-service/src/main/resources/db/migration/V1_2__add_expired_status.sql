@@ -1,0 +1,1 @@
+ALTER TYPE pending_status ADD VALUE 'EXPIRED';

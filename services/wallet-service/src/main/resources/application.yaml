@@ -1,3 +1,6 @@
+api:
+  base-path: /api/v1
+
 server:
   port: ${PORT}
 
@@ -16,7 +19,6 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
-    database: postgresql
 
   flyway:
     enabled: true
@@ -49,7 +51,7 @@ spring:
       properties:
         spring.deserializer.value.delegate.class: io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer
 
-# Actuator — internal port, never publicly exposed
+# Actuator — internal port, never publicly exposed ────────────────────────────
 management:
   server:
     port: ${MANAGEMENT_PORT}
@@ -63,6 +65,7 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+  # OpenTelemetry tracing (Tempo)
   otlp:
     tracing:
       endpoint: http://tempo:4318/v1/traces
@@ -70,6 +73,7 @@ management:
     sampling:
       probability: 1.0
 
+# ── Logging ──────────────────────────────────────────────────────────────────
 logging:
   level:
     com.moneytransfer.wallet: DEBUG
@@ -103,3 +107,11 @@ app:
   security:
     hmac:
       secret: ${HMAC_SECRET_KEY}
+
+# ── Outbox Partitioning ──────────────────────────────────────────────────────
+outbox:
+  partition:
+    enabled: true
+    retention-days: 7
+    future-days: 2
+    cron: "0 0 0 * * *"

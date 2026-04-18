@@ -20,8 +20,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static com.moneytransfer.wallet.enums.PendingStatus.DISCARDED;
+import static com.moneytransfer.wallet.enums.PendingStatus.EXPIRED;
 import static com.moneytransfer.wallet.enums.PendingStatus.INITIATED;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -121,7 +123,7 @@ class TransferOrchestratorTest {
                   senderId,
                   receiverId,
                   new BigDecimal("100.0000"),
-                  DISCARDED
+                  EXPIRED
             );
         }
 
@@ -175,7 +177,7 @@ class TransferOrchestratorTest {
             transferOrchestrator.handleApproved(event);
 
             // Then
-            verify(settlementService).settle(transactionId);
+            verify(settlementService).settle(eq(transactionId), any(Timestamp.class));
         }
 
         @Test
@@ -194,7 +196,7 @@ class TransferOrchestratorTest {
             transferOrchestrator.handleApproved(event);
 
             // Then
-            verify(settlementService, never()).settle(any());
+            verify(settlementService, never()).settle(any(), any(Timestamp.class));
         }
     }
 

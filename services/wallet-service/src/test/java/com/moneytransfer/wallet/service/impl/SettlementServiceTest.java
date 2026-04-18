@@ -1,7 +1,8 @@
 package com.moneytransfer.wallet.service.impl;
 
+import com.google.protobuf.Timestamp;
 import com.moneytransfer.wallet.dto.BalanceUpdateEvent;
-import com.moneytransfer.wallet.exception.WalletException;
+import com.moneytransfer.wallet.enums.WalletRejectionCode;
 import com.moneytransfer.wallet.model.PendingTransfer;
 import com.moneytransfer.wallet.model.Wallet;
 import com.moneytransfer.wallet.repository.WalletRepository;
@@ -18,6 +19,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,9 +28,7 @@ import static com.moneytransfer.wallet.enums.PendingStatus.COMPLETED;
 import static com.moneytransfer.wallet.enums.PendingStatus.DISCARDED;
 import static com.moneytransfer.wallet.enums.PendingStatus.FAILED;
 import static com.moneytransfer.wallet.enums.PendingStatus.INITIATED;
-import static com.moneytransfer.wallet.exception.enums.WalletErrorCode.WALLET_PARTICIPANTS_MISSING;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
@@ -84,6 +85,13 @@ class SettlementServiceTest {
               .setBalance(new BigDecimal("200.0000"));
     }
 
+    private Timestamp getExpiresAt(){
+        Instant instant = Instant.now().plus(Duration.ofMinutes(10));
+        return Timestamp.newBuilder()
+              .setSeconds(instant.getEpochSecond())
+              .build();
+    }
+
     @Test
     @DisplayName("Should settle transfer successfully - happy path")
     void settle_Success() {
@@ -94,7 +102,7 @@ class SettlementServiceTest {
               .thenReturn(List.of(senderWallet, receiverWallet));
 
         // When
-        settlementService.settle(transactionId);
+        settlementService.settle(transactionId, getExpiresAt());
 
         // Then
         assertThat(senderWallet.getBalance())
@@ -126,7 +134,7 @@ class SettlementServiceTest {
               .thenReturn(pendingTransfer);
 
         // When
-        settlementService.settle(transactionId);
+        settlementService.settle(transactionId, getExpiresAt());
 
         // Then
         verify(walletRepository, never()).findAllByUserIdInForUpdate(anyList());
@@ -150,7 +158,7 @@ class SettlementServiceTest {
               .thenReturn(pendingTransfer);
 
         // When
-        settlementService.settle(transactionId);
+        settlementService.settle(transactionId, getExpiresAt());
 
         // Then
         verify(walletRepository, never()).findAllByUserIdInForUpdate(anyList());
@@ -170,23 +178,18 @@ class SettlementServiceTest {
               .thenReturn(List.of(senderWallet, receiverWallet));
 
         // When
-        settlementService.settle(transactionId);
+        settlementService.settle(transactionId, getExpiresAt());
 
         // Then
         verify(pendingTransferService).updateStatus(pendingTransfer, FAILED);
 
-        ArgumentCaptor<String> reasonCaptor = ArgumentCaptor.forClass(String.class);
-
+        // Then - verify failure event published using Enum description
         verify(walletOutboxService).publishTransferFailed(
-              eq(transactionId),
-              eq(senderId),
-              reasonCaptor.capture()
+              transactionId,
+              senderId,
+              WalletRejectionCode.INSUFFICIENT_FUNDS.getDescription()
         );
 
-        assertThat(reasonCaptor.getValue())
-              .contains("Insufficient funds")
-              .contains("available=50.0000")
-              .contains("required=100.0000");
 
         verify(walletRepository, never()).saveAll(anyList());
         verify(walletOutboxService, never()).publishTransferCompleted(
@@ -200,44 +203,60 @@ class SettlementServiceTest {
     }
 
     @Test
-    @DisplayName("Should throw exception when sender wallet not found")
+    @DisplayName("Should mark FAILED and publish event when sender wallet is missing")
     void settle_SenderWalletNotFound() {
         // Given
         when(pendingTransferService.getPendingTransfer(transactionId))
               .thenReturn(pendingTransfer);
-        when(walletRepository.findAllByUserIdInForUpdate(anyList()))
-              .thenReturn(List.of(receiverWallet)); // Only receiver wallet
 
-        // When / Then
-        assertThatThrownBy(() -> settlementService.settle(transactionId))
-              .isInstanceOf(WalletException.class)
-              .hasFieldOrPropertyWithValue("errorCode", WALLET_PARTICIPANTS_MISSING);
+        // Mocking that only the receiver wallet was found
+        when(walletRepository.findAllByUserIdInForUpdate(anyList()))
+              .thenReturn(List.of(receiverWallet));
+
+        // When
+        settlementService.settle(transactionId, getExpiresAt());
+
+        // Then
+        verify(pendingTransferService).updateStatus(pendingTransfer, FAILED);
+
+        verify(walletOutboxService).publishTransferFailed(
+              transactionId,
+              senderId,
+              WalletRejectionCode.WALLET_NOT_FOUND.getDescription()
+        );
 
         verify(walletRepository, never()).saveAll(anyList());
-        verifyNoInteractions(walletOutboxService);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
-    @DisplayName("Should throw exception when receiver wallet not found")
+    @DisplayName("Should mark FAILED and publish event when receiver wallet is missing")
     void settle_ReceiverWalletNotFound() {
         // Given
         when(pendingTransferService.getPendingTransfer(transactionId))
               .thenReturn(pendingTransfer);
 
         when(walletRepository.findAllByUserIdInForUpdate(anyList()))
-              .thenReturn(List.of(senderWallet)); // Only sender wallet
+              .thenReturn(List.of(senderWallet));
 
-        // When / Then
-        assertThatThrownBy(() -> settlementService.settle(transactionId))
-              .isInstanceOf(WalletException.class)
-              .hasFieldOrPropertyWithValue("errorCode", WALLET_PARTICIPANTS_MISSING);
+        // When
+        settlementService.settle(transactionId, getExpiresAt());
 
+        // Then - verify status update to FAILED instead of throwing exception
+        verify(pendingTransferService).updateStatus(pendingTransfer, FAILED);
+
+        verify(walletOutboxService).publishTransferFailed(
+              transactionId,
+              senderId,
+              WalletRejectionCode.WALLET_NOT_FOUND.getDescription()
+        );
+
+        // Verify no financial changes occurred
         verify(walletRepository, never()).saveAll(anyList());
-        verifyNoInteractions(walletOutboxService);
     }
 
     @Test
-    @DisplayName("Should throw exception when both wallets are missing")
+    @DisplayName("Should mark FAILED and publish event when both wallets are missing")
     void settle_BothWalletsMissing() {
         // Given
         when(pendingTransferService.getPendingTransfer(transactionId))
@@ -246,10 +265,20 @@ class SettlementServiceTest {
         when(walletRepository.findAllByUserIdInForUpdate(anyList()))
               .thenReturn(List.of());
 
-        // When / Then
-        assertThatThrownBy(() -> settlementService.settle(transactionId))
-              .isInstanceOf(WalletException.class)
-              .hasFieldOrPropertyWithValue("errorCode", WALLET_PARTICIPANTS_MISSING);
+        // When
+        settlementService.settle(transactionId, getExpiresAt());
+
+        // Then
+        verify(pendingTransferService).updateStatus(pendingTransfer, FAILED);
+
+        verify(walletOutboxService).publishTransferFailed(
+              transactionId,
+              senderId,
+              WalletRejectionCode.WALLET_NOT_FOUND.getDescription()
+        );
+
+        verify(walletRepository, never()).saveAll(anyList());
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -277,7 +306,7 @@ class SettlementServiceTest {
               .thenReturn(List.of(lowWallet, highWallet));
 
         // When
-        settlementService.settle(transactionId);
+        settlementService.settle(transactionId, getExpiresAt());
 
         // Then
         @SuppressWarnings("unchecked")
@@ -305,7 +334,7 @@ class SettlementServiceTest {
               .thenReturn(List.of(senderWallet, receiverWallet));
 
         // When
-        settlementService.settle(transactionId);
+        settlementService.settle(transactionId, getExpiresAt());
 
         // Then
         assertThat(senderWallet.getBalance()).isEqualByComparingTo("0.0000");
@@ -333,7 +362,7 @@ class SettlementServiceTest {
               .thenReturn(List.of(senderWallet, receiverWallet));
 
         // When
-        settlementService.settle(transactionId);
+        settlementService.settle(transactionId, getExpiresAt());
 
         // Then
         verify(pendingTransferService).updateStatus(pendingTransfer, FAILED);

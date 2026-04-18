@@ -23,12 +23,14 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
 import static com.moneytransfer.wallet.enums.PendingStatus.COMPLETED;
 import static com.moneytransfer.wallet.enums.PendingStatus.DISCARDED;
+import static com.moneytransfer.wallet.enums.PendingStatus.EXPIRED;
 import static com.moneytransfer.wallet.enums.PendingStatus.INITIATED;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -178,13 +180,15 @@ class KafkaConsumerIntegrationTest {
         // Then
         await().atMost(10, SECONDS).untilAsserted(() -> {
             PendingTransfer pending = pendingTransferRepository.findById(transactionId).orElseThrow();
-            assertThat(pending.getStatus()).isEqualTo(DISCARDED);
+            assertThat(pending.getStatus()).isEqualTo(EXPIRED);
         });
     }
 
     @Test
     @DisplayName("Should consume TransferApproved and settle transfer")
     void consumeTransferApproved_Success() {
+
+
         // Given - create pending transfer first
         pendingTransferRepository.save(
               new PendingTransfer()
@@ -197,6 +201,7 @@ class KafkaConsumerIntegrationTest {
 
         String eventId = UUID.randomUUID().toString();
         Instant now = Instant.now();
+        Instant expiresAt = now.plus(Duration.ofMinutes(10));
 
         String signature = signatureService.sign(
               eventId,
@@ -209,6 +214,7 @@ class KafkaConsumerIntegrationTest {
               .setTransactionId(transactionId.toString())
               .setSignature(signature)
               .setOccurredAt(toTimestamp(now))
+              .setExpiresAt(toTimestamp(expiresAt))
               .build();
 
         // When

@@ -1,6 +1,8 @@
 package com.moneytransfer.wallet.service.impl;
 
+import com.google.protobuf.Timestamp;
 import com.moneytransfer.wallet.dto.BalanceUpdateEvent;
+import com.moneytransfer.wallet.enums.WalletRejectionCode;
 import com.moneytransfer.wallet.exception.WalletException;
 import com.moneytransfer.wallet.model.PendingTransfer;
 import com.moneytransfer.wallet.model.Wallet;
@@ -14,15 +16,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 import static com.moneytransfer.wallet.enums.PendingStatus.COMPLETED;
+import static com.moneytransfer.wallet.enums.PendingStatus.EXPIRED;
 import static com.moneytransfer.wallet.enums.PendingStatus.FAILED;
 import static com.moneytransfer.wallet.enums.PendingStatus.INITIATED;
+import static com.moneytransfer.wallet.enums.WalletRejectionCode.INSUFFICIENT_FUNDS;
 import static com.moneytransfer.wallet.exception.enums.WalletErrorCode.WALLET_NOT_FOUND;
-import static com.moneytransfer.wallet.exception.enums.WalletErrorCode.WALLET_PARTICIPANTS_MISSING;
 import static java.math.RoundingMode.HALF_UP;
 
 @Service
@@ -49,17 +53,11 @@ public class SettlementService implements ISettlementService {
 
         pendingTransferService.updateStatus(pending, FAILED);
 
-        String reason = String.format(
-              "Insufficient funds: available=%s, required=%s",
-              senderWallet.getBalance(),
-              required
-        );
-
         // Outbox write — same transaction
         walletOutboxService.publishTransferFailed(
               pending.getTransactionId(),
               pending.getSenderId(),
-              reason
+              INSUFFICIENT_FUNDS.getDescription()
         );
     }
 
@@ -85,7 +83,7 @@ public class SettlementService implements ISettlementService {
      */
     @Transactional
     @Override
-    public void settle(UUID transactionId) {
+    public void settle(UUID transactionId, Timestamp expiresAt) {
         PendingTransfer pending = pendingTransferService.getPendingTransfer(transactionId);
 
         if (pending.getStatus() != INITIATED) {
@@ -97,6 +95,21 @@ public class SettlementService implements ISettlementService {
             return;
         }
 
+        Instant expiresAtInstant = Instant.ofEpochSecond(
+              expiresAt.getSeconds(),
+              expiresAt.getNanos()
+        );
+
+        if (Instant.now().isAfter(expiresAtInstant)) {
+            log.warn(
+                  "[EXPIRED-ON-ARRIVAL] transaction={} — publishing FraudDetected to close wallet pending",
+                  transactionId
+            );
+
+            pendingTransferService.updateStatus(pending, EXPIRED);
+            return;
+        }
+
         UUID senderId = pending.getSenderId();
         UUID receiverId = pending.getReceiverId();
 
@@ -104,8 +117,23 @@ public class SettlementService implements ISettlementService {
         List<UUID> userIds = Stream.of(senderId, receiverId).sorted().toList();
         List<Wallet> wallets = walletRepository.findAllByUserIdInForUpdate(userIds);
 
-        if (wallets.size() != 2)
-            throw new WalletException(WALLET_PARTICIPANTS_MISSING, userIds);
+        if (wallets.size() != userIds.size()){
+            log.error(
+                  "[TERMINAL-FAILURE] Wallets missing for transaction={}. Expected={}, Found={}",
+                  transactionId,
+                  userIds.size(),
+                  wallets.size()
+            );
+
+            pendingTransferService.updateStatus(pending, FAILED);
+
+            walletOutboxService.publishTransferFailed(
+                  transactionId,
+                  senderId,
+                  WalletRejectionCode.WALLET_NOT_FOUND.getDescription()
+            );
+            return;
+        }
 
         Wallet senderWallet = findWallet(wallets, senderId);
         Wallet receiverWallet = findWallet(wallets, receiverId);

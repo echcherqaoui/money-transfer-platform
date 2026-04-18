@@ -15,10 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/wallets")
+@RequestMapping("${api.base-path}/wallets")
 @RequiredArgsConstructor
 public class DepositController {
-
     private final IDepositService depositService;
 
     @PostMapping("/deposits/{userId}")

@@ -27,7 +27,7 @@ public class SseEmitterService implements ISseEmitterService {
     @Override
     public SseEmitter register() {
         UUID currentUserId = JwtUtils.extractUserId();
-        SseEmitter emitter = new SseEmitter(0L);
+        SseEmitter emitter = new SseEmitter(300_000L); // 5min
 
         // Check if there's an existing connection
         SseEmitter oldEmitter = emitters.put(currentUserId, emitter);
@@ -40,6 +40,7 @@ public class SseEmitterService implements ISseEmitterService {
         });
 
         emitter.onTimeout(() -> {
+            emitter.complete();
             emitters.remove(currentUserId);
             log.debug("SSE connection timed out for user={}", currentUserId);
         });
@@ -49,7 +50,15 @@ public class SseEmitterService implements ISseEmitterService {
             log.debug("SSE connection error for user={}: {}", currentUserId, e.getMessage());
         });
 
-        emitters.put(currentUserId, emitter);
+        // Immediate Handshake
+        try {
+            emitter.send(SseEmitter.event()
+                  .name("connection-confirmed")
+                  .data("connected"));
+        } catch (IOException e) {
+            emitter.completeWithError(e);
+        }
+
         log.debug("SSE emitter registered for user={}", currentUserId);
 
         return emitter;
@@ -66,7 +75,7 @@ public class SseEmitterService implements ISseEmitterService {
             try {
                 emitter.send(
                       SseEmitter.event()
-                            .name("balance")
+                            .name("balance-update")
                             .data(new BalanceUpdateEvent(userId, balance))
                 );
             } catch (IOException | IllegalStateException e) {
