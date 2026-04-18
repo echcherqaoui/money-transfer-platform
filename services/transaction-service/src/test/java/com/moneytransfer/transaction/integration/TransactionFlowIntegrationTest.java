@@ -1,8 +1,8 @@
 package com.moneytransfer.transaction.integration;
 
 import com.moneytransfer.security.jwt.JwtUtils;
-import com.moneytransfer.transaction.dto.TransferRequest;
-import com.moneytransfer.transaction.dto.TransferResponse;
+import com.moneytransfer.transaction.dto.request.TransferRequest;
+import com.moneytransfer.transaction.dto.response.TransactionResponse;
 import com.moneytransfer.transaction.model.OutboxEvent;
 import com.moneytransfer.transaction.model.Transaction;
 import com.moneytransfer.transaction.repository.OutboxEventRepository;
@@ -63,7 +63,7 @@ class TransactionFlowIntegrationTest {
             TransferRequest request = new TransferRequest(receiverId, amount);
 
             // When
-            TransferResponse response;
+            TransactionResponse response;
             try (MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
                 mockedJwtUtils.when(JwtUtils::extractUserId).thenReturn(senderId);
                 response = transactionService.initiateTransfer(request);
@@ -98,7 +98,7 @@ class TransactionFlowIntegrationTest {
             TransferRequest request = new TransferRequest(UUID.randomUUID(), TEN);
 
             // When
-            TransferResponse response;
+            TransactionResponse response;
             try (MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
                 mockedJwtUtils.when(JwtUtils::extractUserId).thenReturn(senderId);
                 response = transactionService.initiateTransfer(request);
@@ -118,18 +118,19 @@ class TransactionFlowIntegrationTest {
         @Transactional
         @DisplayName("Should update status from PENDING to COMPLETED")
         void updateStatus_PendingToCompleted() {
+            UUID receiverId = UUID.randomUUID();
             // Given
             UUID senderId = UUID.randomUUID();
             Transaction transaction = transactionRepository.save(
                   new Transaction()
                         .setSenderId(senderId)
-                        .setReceiverId(UUID.randomUUID())
+                        .setReceiverId(receiverId)
                         .setAmount(TEN)
                         .setStatus(PENDING)
             );
 
             // When
-            transactionService.updateStatus(transaction.getId(), COMPLETED);
+            transactionService.updateStatus(transaction.getId(), senderId, receiverId, null, COMPLETED);
 
             // Then
             Transaction updated = transactionRepository.findById(transaction.getId()).orElseThrow();
@@ -140,17 +141,20 @@ class TransactionFlowIntegrationTest {
         @Transactional
         @DisplayName("Should skip update when already in target status")
         void updateStatus_AlreadyCompleted() {
+            UUID sederId = UUID.randomUUID();
+            UUID receiverId = UUID.randomUUID();
+
             // Given
             Transaction transaction = transactionRepository.save(
                   new Transaction()
-                        .setSenderId(UUID.randomUUID())
-                        .setReceiverId(UUID.randomUUID())
+                        .setSenderId(sederId)
+                        .setReceiverId(receiverId)
                         .setAmount(TEN)
                         .setStatus(COMPLETED)
             );
 
             // When - no exception should be thrown
-            transactionService.updateStatus(transaction.getId(), COMPLETED);
+            transactionService.updateStatus(transaction.getId(), sederId, receiverId, null, COMPLETED);
 
             // Then
             Transaction unchanged = transactionRepository.findById(transaction.getId()).orElseThrow();

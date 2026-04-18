@@ -59,6 +59,9 @@ public class Transaction {
     @Column(nullable = false, columnDefinition = "transaction_status")
     private TransactionStatus status;
 
+    @Column(name = "failure_reason")
+    private String failureReason;
+
     @CreatedDate
     @Column(nullable = false, updatable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private OffsetDateTime createdAt;
@@ -66,5 +69,4 @@ public class Transaction {
     @LastModifiedDate
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private OffsetDateTime updatedAt;
-
 }

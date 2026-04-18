@@ -20,6 +20,8 @@ import java.util.UUID;
 import static com.moneytransfer.transaction.enums.TransactionStatus.FAILED;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -56,13 +58,20 @@ class FraudDetectedConsumerTest {
     class Consume {
 
         @Test
-        @DisplayName("Should consume and process valid event")
+        @DisplayName("Should consume and process valid FraudDetected event")
         void consume_ValidEvent() {
             // Given
             when(signatureService.verify(any(), any(), any(), any()))
                   .thenReturn(true);
 
-            doNothing().when(transactionService).updateStatus(any(), any());
+            // Mock the 5-parameter updateStatus
+            doNothing().when(transactionService).updateStatus(
+                  any(),
+                  any(),
+                  any(),
+                  any(),
+                  any()
+            );
 
             // When
             fraudDetectedConsumer.consume(validEvent, ack);
@@ -75,9 +84,13 @@ class FraudDetectedConsumerTest {
                   validEvent.getSignature()
             );
 
+            // Verify specifically that the reason from the event is passed to the service
             verify(transactionService).updateStatus(
-                  UUID.fromString(validEvent.getTransactionId()),
-                  FAILED
+                  eq(UUID.fromString(validEvent.getTransactionId())),
+                  eq(UUID.fromString(validEvent.getSenderId())),
+                  isNull(), // receiverId is null for FraudDetected
+                  eq(validEvent.getReason()), // This is the change
+                  eq(FAILED)
             );
 
             verify(ack).acknowledge();
@@ -87,14 +100,14 @@ class FraudDetectedConsumerTest {
         @DisplayName("Should throw EventSecurityException on invalid signature")
         void consume_InvalidSignature() {
             // Given
-            when(signatureService.verify(any(), any(), any(), any()))
+            when(signatureService.verify(any(), any(), any(String.class), any()))
                   .thenReturn(false);
 
             // When / Then
             assertThatThrownBy(() -> fraudDetectedConsumer.consume(validEvent, ack))
                   .isInstanceOf(EventSecurityException.class);
 
-            verify(transactionService, never()).updateStatus(any(), any());
+            verify(transactionService, never()).updateStatus(any(), any(), any(), isNull(), any());
 
             verify(ack, never()).acknowledge();
         }

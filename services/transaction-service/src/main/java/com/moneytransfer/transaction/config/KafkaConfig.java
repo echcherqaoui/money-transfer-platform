@@ -3,6 +3,7 @@ package com.moneytransfer.transaction.config;
 import com.google.protobuf.Message;
 import com.moneytransfer.contract.FraudDetected;
 import com.moneytransfer.contract.TransferCompleted;
+import com.moneytransfer.contract.TransferFailed;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import lombok.RequiredArgsConstructor;
@@ -95,6 +96,11 @@ public class KafkaConfig {
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, TransferCompleted> transferCompletedListenerFactory(DefaultErrorHandler errorHandler) {
         return buildFactory(buildConsumerFactory(TransferCompleted.class), errorHandler);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, TransferFailed> transferFailedListenerFactory(DefaultErrorHandler errorHandler) {
+        return buildFactory(buildConsumerFactory(TransferFailed.class), errorHandler);
     }
 
     @Bean

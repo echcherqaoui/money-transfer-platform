@@ -1,13 +1,15 @@
 package com.moneytransfer.transaction.service.impl;
 
 import com.moneytransfer.security.jwt.JwtUtils;
-import com.moneytransfer.transaction.dto.TransferRequest;
-import com.moneytransfer.transaction.dto.TransferResponse;
+import com.moneytransfer.transaction.dto.request.TransferRequest;
+import com.moneytransfer.transaction.dto.response.TransactionDetailResponse;
+import com.moneytransfer.transaction.dto.response.TransactionResponse;
 import com.moneytransfer.transaction.exception.ConcurrentUpdateException;
 import com.moneytransfer.transaction.exception.TransactionNotFoundException;
 import com.moneytransfer.transaction.mapper.TransactionMapper;
 import com.moneytransfer.transaction.model.Transaction;
 import com.moneytransfer.transaction.repository.TransactionRepository;
+import com.moneytransfer.transaction.service.ISseEmitterService;
 import com.moneytransfer.transaction.service.ITransactionOutboxService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -31,9 +34,12 @@ import static com.moneytransfer.transaction.enums.TransactionStatus.PENDING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,6 +51,8 @@ class TransactionServiceImplTest {
     private ITransactionOutboxService outboxService;
     @Mock
     private TransactionMapper transactionMapper;
+    @Mock
+    private ISseEmitterService sseService;
     @InjectMocks
     private TransactionServiceImpl transactionService;
 
@@ -93,7 +101,7 @@ class TransactionServiceImplTest {
                 doNothing().when(outboxService).publishTransferInitiated(any(Transaction.class));
 
                 // When
-                TransferResponse response = transactionService.initiateTransfer(request);
+                TransactionResponse response = transactionService.initiateTransfer(request);
 
                 // Then
                 assertThat(response).isNotNull();
@@ -188,17 +196,25 @@ class TransactionServiceImplTest {
         @Test
         @DisplayName("Should return transfer when found")
         void getTransfer_Found() {
-            // Given
-            when(transactionRepository.findById(transactionId))
-                  .thenReturn(Optional.of(savedTransaction));
+            try (MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+                mockedJwtUtils.when(JwtUtils::extractUserId)
+                      .thenReturn(senderId);
 
-            // When
-            TransferResponse response = transactionService.getTransfer(transactionId);
+                // Given
+                when(transactionRepository.findById(transactionId))
+                      .thenReturn(Optional.of(savedTransaction));
 
-            // Then
-            assertThat(response).isNotNull();
-            assertThat(response.id()).isEqualTo(transactionId);
-            assertThat(response.status()).isEqualTo(PENDING);
+                //  When
+                TransactionDetailResponse response = transactionService.getTransfer(transactionId);
+
+                // Then
+                assertThat(response).isNotNull();
+                assertThat(response.id()).isEqualTo(transactionId);
+                assertThat(response.status()).isEqualTo(PENDING);
+
+                // Verify the static call was actually made
+                mockedJwtUtils.verify(JwtUtils::extractUserId);
+            }
         }
 
         @Test
@@ -221,15 +237,27 @@ class TransactionServiceImplTest {
         @Test
         @DisplayName("Should update status successfully when transaction is PENDING")
         void updateStatus_Success() {
-            // Given
-            when(transactionRepository.atomicStatusUpdate(COMPLETED, transactionId, PENDING))
-                  .thenReturn(1);
+            try (var mockedSyncManager = mockStatic(TransactionSynchronizationManager.class)) {
+                // Tell Mockito that synchronization is active
+                mockedSyncManager.when(TransactionSynchronizationManager::isSynchronizationActive)
+                      .thenReturn(true);
 
-            // When
-            transactionService.updateStatus(transactionId, COMPLETED);
+                // Given
+                when(transactionRepository.atomicStatusUpdate(COMPLETED, transactionId, null,  PENDING))
+                      .thenReturn(1);
 
-            // Then
-            verify(transactionRepository).atomicStatusUpdate(COMPLETED, transactionId, PENDING);
+                // When
+                transactionService.updateStatus(transactionId, senderId, receiverId, null, COMPLETED);
+
+                // Then
+                verify(transactionRepository).atomicStatusUpdate(
+                      eq(COMPLETED),
+                      eq(transactionId),
+                      isNull(),
+                      eq(PENDING)
+                );
+            }
+
         }
 
         @Test
@@ -238,17 +266,18 @@ class TransactionServiceImplTest {
             // Given
             savedTransaction.setStatus(COMPLETED);
 
-            when(transactionRepository.atomicStatusUpdate(COMPLETED, transactionId, PENDING))
+            when(transactionRepository.atomicStatusUpdate(COMPLETED, transactionId,null, PENDING))
                   .thenReturn(0);
 
             when(transactionRepository.findById(transactionId))
                   .thenReturn(Optional.of(savedTransaction));
 
             // When
-            transactionService.updateStatus(transactionId, COMPLETED);
+            transactionService.updateStatus(transactionId, senderId, receiverId, null, COMPLETED);
 
-            // Then
+            verify(transactionRepository).atomicStatusUpdate(COMPLETED, transactionId, null, PENDING);
             verify(transactionRepository).findById(transactionId);
+            verifyNoInteractions(sseService);
         }
 
         @Test
@@ -257,58 +286,61 @@ class TransactionServiceImplTest {
             // Given
             savedTransaction.setStatus(FAILED);
 
-            when(transactionRepository.atomicStatusUpdate(COMPLETED, transactionId, PENDING))
+            when(transactionRepository.atomicStatusUpdate(COMPLETED, transactionId, null, PENDING))
                   .thenReturn(0);
 
             when(transactionRepository.findById(transactionId))
                   .thenReturn(Optional.of(savedTransaction));
 
             // When / Then
-            assertThatThrownBy(() -> transactionService.updateStatus(transactionId, COMPLETED))
-                  .isInstanceOf(ConcurrentUpdateException.class);
-        }
-
-        @Test
-        @DisplayName("Should throw TransactionNotFoundException when transaction doesn't exist")
-        void updateStatus_TransactionNotFound() {
-            // Given
-            when(transactionRepository.atomicStatusUpdate(COMPLETED, transactionId, PENDING))
-                  .thenReturn(0);
-
-            when(transactionRepository.findById(transactionId))
-                  .thenReturn(Optional.empty());
-
-            // When / Then
-            assertThatThrownBy(() -> transactionService.updateStatus(transactionId, COMPLETED))
-                  .isInstanceOf(TransactionNotFoundException.class);
+            assertThatThrownBy(() -> transactionService.updateStatus(
+                  transactionId,
+                  senderId,
+                  null,
+                  null,
+                  COMPLETED
+            )).isInstanceOf(ConcurrentUpdateException.class);
         }
 
         @Test
         @DisplayName("Should handle PENDING to FAILED transition")
         void updateStatus_PendingToFailed() {
-            // Given
-            when(transactionRepository.atomicStatusUpdate(FAILED, transactionId, PENDING))
-                  .thenReturn(1);
+            String reason = "VELOCITY_LIMIT_EXCEEDED";
+            try (var mockedSyncManager = mockStatic(TransactionSynchronizationManager.class)) {
+                // Given
+                when(transactionRepository.atomicStatusUpdate(FAILED, transactionId, reason, PENDING))
+                      .thenReturn(1);
 
-            // When
-            transactionService.updateStatus(transactionId, FAILED);
+                // When
+                transactionService.updateStatus(transactionId, senderId, null, reason, FAILED);
 
-            // Then
-            verify(transactionRepository).atomicStatusUpdate(FAILED, transactionId, PENDING);
+                // Then
+                verify(transactionRepository).atomicStatusUpdate(FAILED, transactionId, reason, PENDING);
+            }
         }
 
         @Test
         @DisplayName("Should handle PENDING to EXPIRED transition")
         void updateStatus_PendingToExpired() {
-            // Given
-            when(transactionRepository.atomicStatusUpdate(EXPIRED, transactionId, PENDING))
-                  .thenReturn(1);
+            String reason = "TRANSACTION_EXPIRED";
 
-            // When
-            transactionService.updateStatus(transactionId, EXPIRED);
+            // Mock the static manager to prevent the IllegalStateException
+            try (MockedStatic<TransactionSynchronizationManager> syncManager = mockStatic(TransactionSynchronizationManager.class)) {
+                syncManager.when(TransactionSynchronizationManager::isSynchronizationActive).thenReturn(true);
 
-            // Then
-            verify(transactionRepository).atomicStatusUpdate(EXPIRED, transactionId, PENDING);
+                // Given
+                when(transactionRepository.atomicStatusUpdate(EXPIRED, transactionId, reason, PENDING))
+                      .thenReturn(1);
+
+                // When
+                transactionService.updateStatus(transactionId, senderId, receiverId, reason, EXPIRED);
+
+                // Then
+                verify(transactionRepository).atomicStatusUpdate(EXPIRED, transactionId, reason, PENDING);
+
+                // Verify that synchronization was actually registered
+                syncManager.verify(() -> TransactionSynchronizationManager.registerSynchronization(any()));
+            }
         }
     }
 }

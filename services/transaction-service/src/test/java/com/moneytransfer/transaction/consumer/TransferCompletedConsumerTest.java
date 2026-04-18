@@ -20,6 +20,8 @@ import java.util.UUID;
 import static com.moneytransfer.transaction.enums.TransactionStatus.COMPLETED;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -63,7 +65,7 @@ class TransferCompletedConsumerTest {
             when(signatureService.verify(any(), any(), any(), any()))
                   .thenReturn(true);
 
-            doNothing().when(transactionService).updateStatus(any(), any());
+            doNothing().when(transactionService).updateStatus(any(), any(), any(), any(), any());
 
             // When
             transferCompletedConsumer.consume(validEvent, ack);
@@ -77,8 +79,11 @@ class TransferCompletedConsumerTest {
             );
 
             verify(transactionService).updateStatus(
-                  UUID.fromString(validEvent.getTransactionId()),
-                  COMPLETED
+                  eq(UUID.fromString(validEvent.getTransactionId())),
+                  any(),
+                  any(),
+                  isNull(),
+                  eq(COMPLETED)
             );
 
             verify(ack).acknowledge();
@@ -95,7 +100,7 @@ class TransferCompletedConsumerTest {
             assertThatThrownBy(() -> transferCompletedConsumer.consume(validEvent, ack))
                   .isInstanceOf(EventSecurityException.class);
 
-            verify(transactionService, never()).updateStatus(any(), any());
+            verify(transactionService, never()).updateStatus(any(), any(), any(), isNull(), any());
             verify(ack, never()).acknowledge();
         }
 
@@ -126,7 +131,7 @@ class TransferCompletedConsumerTest {
 
             verify(signatureService).verify(any(), any(), any(), any());
 
-            verify(transactionService, never()).updateStatus(any(), any());
+            verify(transactionService, never()).updateStatus(any(), any(), isNull(), any(), any());
         }
     }
 }

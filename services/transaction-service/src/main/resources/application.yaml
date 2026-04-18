@@ -1,3 +1,6 @@
+api:
+  base-path: /api/v1
+
 server:
   port: ${PORT}
 
@@ -16,7 +19,6 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
-    database: postgresql
 
   flyway:
     validate-on-migrate: true
@@ -85,9 +87,17 @@ kafka:
     # Wallet service events
     wallet:
       transfer-completed: ${KF_TOPIC_PREFIX}.mtp.wallet.transfer.completed.v1
-
+      transfer-failed: ${KF_TOPIC_PREFIX}.mtp.wallet.transfer.failed.v1
 # ── HMAC ─────────────────────────────────────────────────────────────────────
 app:
   security:
     hmac:
       secret: ${HMAC_SECRET_KEY}
+
+# ── Outbox Partitioning ──────────────────────────────────────────────────────
+outbox:
+  partition:
+    enabled: true
+    retention-days: 7
+    future-days: 2
+    cron: "0 0 0 * * *"

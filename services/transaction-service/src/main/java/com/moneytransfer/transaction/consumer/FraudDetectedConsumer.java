@@ -53,6 +53,9 @@ public class FraudDetectedConsumer {
         // Mark transaction as FAILED
         transactionService.updateStatus(
               UUID.fromString(event.getTransactionId()),
+              UUID.fromString(event.getSenderId()),
+              null,
+              event.getReason(),
               FAILED
         );
 
@@ -63,5 +66,4 @@ public class FraudDetectedConsumer {
               event.getReason()
         );
     }
-
 }

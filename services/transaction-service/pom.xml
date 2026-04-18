@@ -30,6 +30,10 @@
             <artifactId>transfer-api-contract</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.moneytransfer</groupId>
+            <artifactId>common-outbox</artifactId>
+        </dependency>
         <!-- Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

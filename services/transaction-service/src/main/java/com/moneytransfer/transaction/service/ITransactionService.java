@@ -1,16 +1,28 @@
 package com.moneytransfer.transaction.service;
 
-import com.moneytransfer.transaction.dto.TransferRequest;
-import com.moneytransfer.transaction.dto.TransferResponse;
+import com.moneytransfer.transaction.dto.request.TransferRequest;
+import com.moneytransfer.transaction.dto.response.PaginatedResponse;
+import com.moneytransfer.transaction.dto.response.TransactionDetailResponse;
+import com.moneytransfer.transaction.dto.response.TransactionResponse;
+import com.moneytransfer.transaction.dto.response.TransactionStatsResponse;
 import com.moneytransfer.transaction.enums.TransactionStatus;
 
 import java.util.UUID;
 
 public interface ITransactionService {
-    TransferResponse initiateTransfer(TransferRequest request);
+    TransactionResponse initiateTransfer(TransferRequest request);
 
-    TransferResponse getTransfer(UUID id);
+    PaginatedResponse<TransactionResponse> getTransfers(int page,
+                                                        int size,
+                                                        TransactionStatus status);
+
+    TransactionDetailResponse getTransfer(UUID id);
+
+    TransactionStatsResponse getStats();
 
     void updateStatus(UUID transactionId,
+                      UUID senderId,
+                      UUID receiverId,
+                      String reason,
                       TransactionStatus newStatus);
 }

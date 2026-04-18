@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 
+import static com.moneytransfer.transaction.enums.TransactionRejectionCode.TRANSACTION_EXPIRED;
 import static com.moneytransfer.transaction.enums.TransactionStatus.EXPIRED;
 
 @Component
@@ -29,6 +30,7 @@ public class TimeoutCompensationJob {
 
         int updated = transactionRepository.markStuckTransactionsAs(
               EXPIRED,
+              TRANSACTION_EXPIRED.getDescription(),
               threshold
         );
 

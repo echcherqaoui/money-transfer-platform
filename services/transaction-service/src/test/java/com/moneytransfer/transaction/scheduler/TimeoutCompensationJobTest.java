@@ -46,21 +46,21 @@ class TimeoutCompensationJobTest {
         @DisplayName("Should mark stuck transactions as EXPIRED")
         void markStuckTransactionsFailed_Success() {
             // Given
-            when(transactionRepository.markStuckTransactionsAs(eq(EXPIRED), any(OffsetDateTime.class)))
+            when(transactionRepository.markStuckTransactionsAs(eq(EXPIRED), any(), any(OffsetDateTime.class)))
                   .thenReturn(3);
 
             // When
             timeoutCompensationJob.markStuckTransactionsFailed();
 
             // Then
-            verify(transactionRepository).markStuckTransactionsAs(eq(EXPIRED), any(OffsetDateTime.class));
+            verify(transactionRepository).markStuckTransactionsAs(eq(EXPIRED),  any(), any(OffsetDateTime.class));
         }
 
         @Test
         @DisplayName("Should calculate threshold correctly")
         void markStuckTransactionsFailed_ThresholdCalculation() {
             // Given
-            when(transactionRepository.markStuckTransactionsAs(eq(EXPIRED), any(OffsetDateTime.class)))
+            when(transactionRepository.markStuckTransactionsAs(eq(EXPIRED), any(), any(OffsetDateTime.class)))
                   .thenReturn(0);
 
             OffsetDateTime before = OffsetDateTime.now().minusMinutes(2).minusSeconds(5);
@@ -72,7 +72,7 @@ class TimeoutCompensationJobTest {
 
             // Then
             ArgumentCaptor<OffsetDateTime> captor = ArgumentCaptor.forClass(OffsetDateTime.class);
-            verify(transactionRepository).markStuckTransactionsAs(eq(EXPIRED), captor.capture());
+            verify(transactionRepository).markStuckTransactionsAs(eq(EXPIRED), any(), captor.capture());
 
             OffsetDateTime threshold = captor.getValue();
             assertThat(threshold).isBetween(before, after);
@@ -83,7 +83,7 @@ class TimeoutCompensationJobTest {
         void markStuckTransactionsFailed_UsesConfiguredTimeout() {
             // Given
             when(transactionProperties.getTimeoutMinutes()).thenReturn(10L);
-            when(transactionRepository.markStuckTransactionsAs(eq(EXPIRED), any(OffsetDateTime.class)))
+            when(transactionRepository.markStuckTransactionsAs(eq(EXPIRED), any(), any(OffsetDateTime.class)))
                   .thenReturn(0);
 
             OffsetDateTime expectedThreshold = OffsetDateTime.now().minusMinutes(10);
@@ -93,7 +93,7 @@ class TimeoutCompensationJobTest {
 
             // Then
             ArgumentCaptor<OffsetDateTime> captor = ArgumentCaptor.forClass(OffsetDateTime.class);
-            verify(transactionRepository).markStuckTransactionsAs(eq(EXPIRED), captor.capture());
+            verify(transactionRepository).markStuckTransactionsAs(eq(EXPIRED), any(), captor.capture());
 
             assertThat(captor.getValue())
                   .isCloseTo(expectedThreshold, within(5, ChronoUnit.SECONDS));
@@ -103,13 +103,13 @@ class TimeoutCompensationJobTest {
         @DisplayName("Should handle zero updates gracefully")
         void markStuckTransactionsFailed_ZeroUpdates() {
             // Given
-            when(transactionRepository.markStuckTransactionsAs(eq(EXPIRED), any(OffsetDateTime.class)))
+            when(transactionRepository.markStuckTransactionsAs(eq(EXPIRED), any(), any(OffsetDateTime.class)))
                   .thenReturn(0);
 
             // When / Then - should not throw
             timeoutCompensationJob.markStuckTransactionsFailed();
 
-            verify(transactionRepository).markStuckTransactionsAs(eq(EXPIRED), any(OffsetDateTime.class));
+            verify(transactionRepository).markStuckTransactionsAs(eq(EXPIRED), any(), any(OffsetDateTime.class));
         }
     }
 }
