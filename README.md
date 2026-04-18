@@ -175,8 +175,6 @@ Services started:
 
 Wait for health checks (30-60s). Verify: docker ps — all containers should show "healthy".
 
----
-
 ## Configure Keycloak
 
 1. Navigate to http://localhost:8443
@@ -189,7 +187,6 @@ Wait for health checks (30-60s). Verify: docker ps — all containers should sho
     - Standard flow: ENABLED
     - Valid redirect URIs: http://localhost:8080/login/oauth2/code/keycloak
     - Save → Copy Client Secret → paste into .env as KC_CLIENT_SECRET
----
 
 ### 3. Register Protobuf schemas
 ```bash

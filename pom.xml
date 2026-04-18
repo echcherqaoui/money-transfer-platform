@@ -19,6 +19,7 @@
 
     <modules>
         <module>common/common-exceptions</module>
+        <module>common/common-outbox</module>
         <module>common/transfer-api-contract</module>
         <module>common/common-security</module>
         <module>infrastructure/api-gateway</module>
@@ -82,6 +83,11 @@
             <dependency>
                 <groupId>com.moneytransfer</groupId>
                 <artifactId>common-exceptions</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.moneytransfer</groupId>
+                <artifactId>common-outbox</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

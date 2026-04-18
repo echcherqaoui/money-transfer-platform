@@ -24,6 +24,8 @@ services:
       WALLET_SERVICE_PORT: ${WALLET_SERVICE_PORT}
     networks:
       - money-transfer-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       redis:
         condition: service_healthy
