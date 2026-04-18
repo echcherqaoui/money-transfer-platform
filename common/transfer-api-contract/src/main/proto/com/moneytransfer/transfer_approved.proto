@@ -11,11 +11,11 @@ import "google/protobuf/timestamp.proto";
 // ───────────────────────────────────────────────────────────────
 // Published by: fraud-service
 // Consumed by:  wallet-service
-// Topic:        money.transfer.decision
 // ───────────────────────────────────────────────────────────────
 message TransferApproved {
   string event_id = 1;
   string signature = 2;
   google.protobuf.Timestamp occurred_at = 3;
   string transaction_id = 4;
+  google.protobuf.Timestamp expiresAt = 5;
 }

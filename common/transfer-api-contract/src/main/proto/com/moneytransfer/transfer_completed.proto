@@ -11,7 +11,6 @@ import "google/protobuf/timestamp.proto";
 // ───────────────────────────────────────────────────────────────
 // Published by: wallet-service
 // Consumed by:  transaction-service (mark COMPLETED + SSE notify)
-// Topic:        money.transfer.result
 // ───────────────────────────────────────────────────────────────
 message TransferCompleted {
   string event_id  = 1;
