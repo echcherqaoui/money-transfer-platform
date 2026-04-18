@@ -1,5 +1,6 @@
 package com.moneytransfer.fraud.service.impl;
 
+import com.google.protobuf.Timestamp;
 import com.moneytransfer.contract.FraudDetected;
 import com.moneytransfer.contract.TransferApproved;
 import com.moneytransfer.fraud.exception.KafkaPublishException;
@@ -16,6 +17,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -147,8 +150,12 @@ class KafkaFraudEventProducerTest {
         @DisplayName("Should publish TransferApproved event successfully")
         void publishTransferApproved_Success() {
             String transactionId = UUID.randomUUID().toString();
+            Instant instant = Instant.now().plus(Duration.ofMinutes(10));
+            Timestamp expiresAt = Timestamp.newBuilder()
+                  .setSeconds(instant.getEpochSecond())
+                  .build();
 
-            fraudEventProducer.publishTransferApproved(transactionId);
+            fraudEventProducer.publishTransferApproved(transactionId, expiresAt);
 
             ArgumentCaptor<TransferApproved> eventCaptor = ArgumentCaptor.forClass(TransferApproved.class);
             verify(kafkaTemplate).send(eq(approvedTopic), eq(transactionId), eventCaptor.capture());
@@ -162,11 +169,17 @@ class KafkaFraudEventProducerTest {
         @Test
         @DisplayName("Should throw KafkaPublishException on failure")
         void publishTransferApproved_Failure() {
+            Instant instant = Instant.now().plus(Duration.ofMinutes(10));
+            Timestamp expiresAt = Timestamp.newBuilder()
+                  .setSeconds(instant.getEpochSecond())
+                  .build();
+
+
             CompletableFuture<SendResult<String, Object>> future = new CompletableFuture<>();
             future.completeExceptionally(new RuntimeException("Error"));
             when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(future);
 
-            assertThatThrownBy(() -> fraudEventProducer.publishTransferApproved("tx1"))
+            assertThatThrownBy(() -> fraudEventProducer.publishTransferApproved("tx1", expiresAt))
                   .isInstanceOf(KafkaPublishException.class)
                   .hasFieldOrPropertyWithValue("errorCode", KAFKA_PUBLISH_FAILURE);
         }

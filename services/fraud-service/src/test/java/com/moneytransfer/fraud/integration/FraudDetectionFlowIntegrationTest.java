@@ -21,13 +21,16 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -72,16 +75,25 @@ class FraudDetectionFlowIntegrationTest {
     @DisplayName("Should approve valid transfer")
     void evaluate_ApproveValid() {
         String txId = UUID.randomUUID().toString();
+
+        Instant instant = Instant.now().plus(Duration.ofMinutes(10))
+              .truncatedTo(ChronoUnit.SECONDS);
+
+        Timestamp expiresAt = Timestamp.newBuilder()
+              .setSeconds(instant.getEpochSecond())
+              .setNanos(instant.getNano())
+              .build();
+
         MoneyTransferInitiated event = createEvent(
               txId,
               null,
               50_000_000L,
-              Instant.now().plusSeconds(600)
+              instant
         );
 
         fraudDetectionService.evaluate(event);
 
-        verify(fraudEventProducer).publishTransferApproved(txId);
+        verify(fraudEventProducer).publishTransferApproved(txId, expiresAt);
     }
 
     @Test
@@ -102,7 +114,7 @@ class FraudDetectionFlowIntegrationTest {
               .publishFraudDetected(
                     eq(txId),
                     anyString(),
-                    contains("exceeds threshold")
+                    contains("amount exceeds the maximum")
               );
     }
 
@@ -111,7 +123,7 @@ class FraudDetectionFlowIntegrationTest {
     void evaluate_VelocityFraud() {
         String senderId = UUID.randomUUID().toString();
         int max = fraudProperties.getVelocity().getMaxTransactions();
-        Instant expiry = Instant.now().plusSeconds(600);
+        Instant expiry = Instant.now().plus(Duration.ofMinutes(10));
 
         for (int i = 0; i <= max; i++)
             fraudDetectionService.evaluate(
@@ -128,7 +140,7 @@ class FraudDetectionFlowIntegrationTest {
               .publishFraudDetected(
                     anyString(),
                     eq(senderId),
-                    contains("exceeded")
+                    contains("Too many")
               );
     }
 
@@ -136,19 +148,19 @@ class FraudDetectionFlowIntegrationTest {
     @DisplayName("Should publish FraudDetected when transaction is expired")
     void evaluate_Expired() {
         String txId = UUID.randomUUID().toString();
+        Instant instant = Instant.now().minus(Duration.ofMinutes(1))
+              .truncatedTo(ChronoUnit.SECONDS);
+
         MoneyTransferInitiated event = createEvent(
               txId,
               null,
               50_000_000L,
-              Instant.now().minusSeconds(60)
+              instant
         );
 
         fraudDetectionService.evaluate(event);
 
-        verify(fraudEventProducer).publishFraudDetected(
-              txId,
-              event.getSenderId(),
-              "transaction_expired"
-        );
+        // Verifies that neither publishTransferApproved nor publishFraudDetected was called
+        verifyNoInteractions(fraudEventProducer);
     }
 }

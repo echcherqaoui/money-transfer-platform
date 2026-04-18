@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
@@ -24,6 +25,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -81,7 +83,7 @@ class FraudDetectionServiceImplTest {
 
             fraudDetectionService.evaluate(event);
 
-            verify(fraudEventProducer).publishTransferApproved(event.getTransactionId());
+            verify(fraudEventProducer).publishTransferApproved(eq(event.getTransactionId()), any(Timestamp.class));
         }
 
         @Test
@@ -91,7 +93,7 @@ class FraudDetectionServiceImplTest {
 
             fraudDetectionService.evaluate(event);
 
-            verify(fraudEventProducer).publishFraudDetected(eq(event.getTransactionId()), eq(event.getSenderId()), contains("exceeds threshold"));
+            verify(fraudEventProducer).publishFraudDetected(eq(event.getTransactionId()), eq(event.getSenderId()), contains("amount exceeds the maximum"));
             verify(velocityTracker, never()).recordAndCheckVelocity(anyString(), anyString(), anyInt(), anyInt());
         }
 
@@ -103,7 +105,7 @@ class FraudDetectionServiceImplTest {
 
             fraudDetectionService.evaluate(event);
 
-            verify(fraudEventProducer).publishTransferApproved(event.getTransactionId());
+            verify(fraudEventProducer).publishTransferApproved(eq(event.getTransactionId()), any(Timestamp.class));
         }
     }
 
@@ -119,7 +121,7 @@ class FraudDetectionServiceImplTest {
 
             fraudDetectionService.evaluate(event);
 
-            verify(fraudEventProducer).publishTransferApproved(event.getTransactionId());
+            verify(fraudEventProducer).publishTransferApproved(eq(event.getTransactionId()), any(Timestamp.class));
         }
 
         @Test
@@ -130,7 +132,7 @@ class FraudDetectionServiceImplTest {
 
             fraudDetectionService.evaluate(event);
 
-            verify(fraudEventProducer).publishFraudDetected(eq(event.getTransactionId()), eq(event.getSenderId()), contains("exceeded"));
+            verify(fraudEventProducer).publishFraudDetected(eq(event.getTransactionId()), eq(event.getSenderId()), contains("Too many transactions"));
         }
 
         @Test
@@ -151,18 +153,6 @@ class FraudDetectionServiceImplTest {
     @Nested
     @DisplayName("evaluate - Expiry Check")
     class ExpiryCheck {
-
-        @Test
-        @DisplayName("Should publish FraudDetected when transaction is expired")
-        void evaluate_TransactionExpired() {
-            MoneyTransferInitiated event = createEvent(50_000_000L, -60);
-
-            fraudDetectionService.evaluate(event);
-
-            verify(fraudEventProducer).publishFraudDetected(event.getTransactionId(), event.getSenderId(), "transaction_expired");
-            verify(velocityTracker, never()).recordAndCheckVelocity(anyString(), anyString(), anyInt(), anyInt());
-        }
-
         @Test
         @DisplayName("Should not record velocity when transaction is expired")
         void evaluate_ExpiredNoVelocityRecord() {
@@ -185,7 +175,7 @@ class FraudDetectionServiceImplTest {
 
             fraudDetectionService.evaluate(event);
 
-            verify(fraudEventProducer).publishFraudDetected(anyString(), anyString(), contains("exceeds threshold"));
+            verify(fraudEventProducer).publishFraudDetected(anyString(), anyString(), contains("amount exceeds the maximum"));
             verify(velocityTracker, never()).recordAndCheckVelocity(anyString(), anyString(), anyInt(), anyInt());
         }
 
@@ -196,7 +186,7 @@ class FraudDetectionServiceImplTest {
 
             fraudDetectionService.evaluate(event);
 
-            verify(fraudEventProducer).publishFraudDetected(anyString(), anyString(), eq("transaction_expired"));
+            verifyNoInteractions(fraudEventProducer);
         }
     }
 }

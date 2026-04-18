@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 
+import static com.moneytransfer.fraud.enums.FraudRejectionCode.AMOUNT_THRESHOLD_EXCEEDED;
+import static com.moneytransfer.fraud.enums.FraudRejectionCode.VELOCITY_LIMIT_EXCEEDED;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -22,17 +25,13 @@ public class FraudDetectionServiceImpl implements IFraudDetectionService {
 
     private String checkAmountThreshold(MoneyTransferInitiated event, long threshold) {
         if (event.getAmountMinorUnits() > threshold)
-            return String.format(
-                  "Amount %d exceeds threshold of %d minor units",
-                  event.getAmountMinorUnits(),
-                  threshold
-            );
+            return AMOUNT_THRESHOLD_EXCEEDED.getDescription();
 
         return null;
     }
 
     private String checkVelocity(String senderId,
-                                 String eventId) {
+                                             String eventId) {
         int maxTransactions = fraudProperties.getVelocity().getMaxTransactions();
         int windowMinutes = fraudProperties.getVelocity().getWindowMinutes();
 
@@ -43,15 +42,7 @@ public class FraudDetectionServiceImpl implements IFraudDetectionService {
               windowMinutes
         );
 
-        if (isExceeded)
-            return String.format(
-                  "Sender %s exceeded %d transfers within %d-minute window",
-                  senderId,
-                  maxTransactions,
-                  windowMinutes
-            );
-
-        return null;
+        return isExceeded ? VELOCITY_LIMIT_EXCEEDED.getDescription() : null;
     }
 
     private String detectFraud(MoneyTransferInitiated event, String senderId) {
@@ -59,8 +50,8 @@ public class FraudDetectionServiceImpl implements IFraudDetectionService {
 
         String amountViolation = checkAmountThreshold(event, threshold);
 
-        return amountViolation != null?
-              amountViolation:
+        return amountViolation != null ?
+              amountViolation :
               checkVelocity(senderId, event.getEventId());
     }
 
@@ -79,12 +70,6 @@ public class FraudDetectionServiceImpl implements IFraudDetectionService {
             log.warn(
                   "[EXPIRED-ON-ARRIVAL] transaction={} — publishing FraudDetected to close wallet pending",
                   transactionId
-            );
-
-            fraudEventProducer.publishFraudDetected(
-                  transactionId,
-                  senderId,
-                  "transaction_expired"
             );
             // No velocity recorded
             return;
@@ -112,7 +97,7 @@ public class FraudDetectionServiceImpl implements IFraudDetectionService {
                   senderId
             );
 
-            fraudEventProducer.publishTransferApproved(transactionId);
+            fraudEventProducer.publishTransferApproved(transactionId, event.getExpiresAt());
         }
     }
 }

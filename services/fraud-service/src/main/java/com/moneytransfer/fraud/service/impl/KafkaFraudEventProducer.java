@@ -72,7 +72,7 @@ public class KafkaFraudEventProducer implements IFraudEventProducer {
             throw new KafkaPublishException(KAFKA_PUBLISH_INTERRUPTED, topic);
         } catch (ExecutionException e) {
             throw new KafkaPublishException(KAFKA_PUBLISH_FAILURE, topic);
-        }catch (TimeoutException e) {
+        } catch (TimeoutException e) {
             throw new KafkaPublishException(KAFKA_PUBLISH_TIMEOUT, topic);
         }
     }
@@ -109,7 +109,7 @@ public class KafkaFraudEventProducer implements IFraudEventProducer {
     }
 
     @Override
-    public void publishTransferApproved(String transactionId) {
+    public void publishTransferApproved(String transactionId, Timestamp expiresAt) {
         String eventId = UUID.randomUUID().toString();
         Timestamp occurredAt = toTimestamp(Instant.now());
 
@@ -120,11 +120,12 @@ public class KafkaFraudEventProducer implements IFraudEventProducer {
         );
 
         TransferApproved event = TransferApproved.newBuilder()
-                .setEventId(eventId)
-                .setTransactionId(transactionId)
-                .setSignature(signature)
-                .setOccurredAt(occurredAt)
-                .build();
+              .setEventId(eventId)
+              .setTransactionId(transactionId)
+              .setSignature(signature)
+              .setOccurredAt(occurredAt)
+              .setExpiresAt(expiresAt)
+              .build();
 
         sendSync(
               transferApprovedTopic,
