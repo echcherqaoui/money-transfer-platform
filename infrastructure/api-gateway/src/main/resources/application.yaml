@@ -1,3 +1,6 @@
+api:
+  base-path: /api/v1
+
 server:
   port: ${PORT}
   reactive:
@@ -29,26 +32,6 @@ spring:
       port: ${RD_PORT}
       password: ${RD_PASSWORD}
 
-  # ── OAuth2 Client — BFF, Keycloak as auth server ──────────────
-  security:
-    oauth2:
-      client:
-        registration:
-          keycloak:
-            client-id: ${KC_CLIENT_ID}
-            client-secret: ${KC_CLIENT_SECRET}
-            authorization-grant-type: authorization_code
-            scope: openid, profile, email
-            redirect-uri: "{baseUrl}/login/oauth2/code/keycloak"
-        provider:
-          keycloak:
-            # Browser redirects here for login page
-            authorization-uri: ${KC_PUBLIC_BASE_URL}/realms/${KC_REALM}/protocol/openid-connect/auth
-            # Gateway calls these internally — Docker hostname
-            token-uri: ${KC_INTERNAL_BASE_URL}/realms/${KC_REALM}/protocol/openid-connect/token
-            jwk-set-uri: ${KC_INTERNAL_BASE_URL}/realms/${KC_REALM}/protocol/openid-connect/certs
-            user-info-uri: ${KC_INTERNAL_BASE_URL}/realms/${KC_REALM}/protocol/openid-connect/userinfo
-            user-name-attribute: sub
   # ── Static routing ─────────────────────────────────────────────
   # Docker Compose service names resolve inside Docker network.
   # TokenRelay filter: extracts JWT from Redis session,
@@ -74,13 +57,18 @@ spring:
             - id: transaction-service
               uri: http://transaction:${TRANSACTION_SERVICE_PORT}
               predicates:
-                - Path=/transfers/**
+                - Path=/api/v1/transfers/**
 
             - id: wallet-service
               uri: http://wallet:${WALLET_SERVICE_PORT}
               predicates:
-                - Path=/wallets/**
+                - Path=/api/v1/wallets/**
 
+            - id: angular-frontend
+              # host.docker.internal is the bridge to out of the container
+              uri: http://host.docker.internal:4200
+              predicates:
+                - Path=/** # Send everything else to Angular
 # ── Observability ─────────────────────────────────────────────────
 management:
   server:

@@ -10,7 +10,10 @@ import org.springframework.security.oauth2.client.registration.ReactiveClientReg
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.logout.ServerLogoutSuccessHandler;
 import org.springframework.security.web.server.csrf.CookieServerCsrfTokenRepository;
+import org.springframework.security.web.server.csrf.CsrfToken;
 import org.springframework.security.web.server.csrf.ServerCsrfTokenRequestAttributeHandler;
+import org.springframework.web.server.WebFilter;
+import reactor.core.publisher.Mono;
 
 /**
  * Security configuration for the API Gateway (BFF).
@@ -21,16 +24,26 @@ import org.springframework.security.web.server.csrf.ServerCsrfTokenRequestAttrib
 @Configuration
 @EnableWebFluxSecurity
 public class SecurityConfig {
-
     private final ReactiveClientRegistrationRepository clientRegistrationRepository;
 
     public SecurityConfig(ReactiveClientRegistrationRepository clientRegistrationRepository) {
         this.clientRegistrationRepository = clientRegistrationRepository;
     }
 
+    // Propagates logout to Keycloak — invalidates the Keycloak session too
+    private ServerLogoutSuccessHandler oidcLogoutSuccessHandler() {
+        OidcClientInitiatedServerLogoutSuccessHandler logoutHandler =
+              new OidcClientInitiatedServerLogoutSuccessHandler(clientRegistrationRepository);
+        logoutHandler.setPostLogoutRedirectUri("{baseUrl}/logged-out");
+        return logoutHandler;
+    }
+
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         return http
+              .headers(headers -> headers
+                    .cache(ServerHttpSecurity.HeaderSpec.CacheSpec::disable) // Critical for logout security
+              )
               .csrf(csrf -> csrf
                     .csrfTokenRepository(CookieServerCsrfTokenRepository.withHttpOnlyFalse())
                     .csrfTokenRequestHandler(new ServerCsrfTokenRequestAttributeHandler())
@@ -39,22 +52,21 @@ public class SecurityConfig {
                           "/actuator/prometheus",
                           "/actuator/health",
                           "/login**",
-                          "/oauth2/**"
+                          "/oauth2/**",
+                          "/debug/**"
                     ).permitAll()
                     .anyExchange().authenticated()
-              )
-              .oauth2Login(Customizer.withDefaults())
+              ).oauth2Login(Customizer.withDefaults())
               .logout(logout -> logout
                     .logoutSuccessHandler(oidcLogoutSuccessHandler())
-              )
-              .build();
+              ).build();
     }
 
-    // Propagates logout to Keycloak — invalidates the Keycloak session too
-    private ServerLogoutSuccessHandler oidcLogoutSuccessHandler() {
-        OidcClientInitiatedServerLogoutSuccessHandler handler =
-              new OidcClientInitiatedServerLogoutSuccessHandler(clientRegistrationRepository);
-        handler.setPostLogoutRedirectUri("{baseUrl}");
-        return handler;
+    @Bean
+    public WebFilter csrfCookieWebFilter() {
+        return (exchange, chain) -> exchange.getAttributeOrDefault(CsrfToken.class.getName(), Mono.empty())
+              .doOnSuccess(token -> {
+                  // This line "activates" the token so it's sent to frontend
+              }).then(chain.filter(exchange));
     }
 }
