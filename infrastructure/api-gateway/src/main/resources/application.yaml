@@ -1,7 +1,5 @@
-api:
-  base-path: /api/v1
-
 server:
+  forward-headers-strategy: framework
   port: ${PORT}
   reactive:
     session:
@@ -63,12 +61,6 @@ spring:
               uri: http://wallet:${WALLET_SERVICE_PORT}
               predicates:
                 - Path=/api/v1/wallets/**
-
-            - id: angular-frontend
-              # host.docker.internal is the bridge to out of the container
-              uri: http://host.docker.internal:4200
-              predicates:
-                - Path=/** # Send everything else to Angular
 # ── Observability ─────────────────────────────────────────────────
 management:
   server:

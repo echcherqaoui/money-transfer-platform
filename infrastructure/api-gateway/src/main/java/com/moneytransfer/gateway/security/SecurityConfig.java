@@ -8,12 +8,16 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.client.oidc.web.server.logout.OidcClientInitiatedServerLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.authentication.RedirectServerAuthenticationEntryPoint;
 import org.springframework.security.web.server.authentication.logout.ServerLogoutSuccessHandler;
 import org.springframework.security.web.server.csrf.CookieServerCsrfTokenRepository;
 import org.springframework.security.web.server.csrf.CsrfToken;
 import org.springframework.security.web.server.csrf.ServerCsrfTokenRequestAttributeHandler;
 import org.springframework.web.server.WebFilter;
 import reactor.core.publisher.Mono;
+
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 /**
  * Security configuration for the API Gateway (BFF).
@@ -53,9 +57,23 @@ public class SecurityConfig {
                           "/actuator/health",
                           "/login**",
                           "/oauth2/**",
-                          "/debug/**"
+                          "/debug/**",
+                          "/logged-out"
                     ).permitAll()
                     .anyExchange().authenticated()
+              ).exceptionHandling(exceptions -> exceptions
+                    .authenticationEntryPoint((exchange, ex) -> {
+                        // If the request expects JSON → return 401
+                        // If the request expects HTML → redirect to Keycloak
+                        if (exchange.getRequest().getHeaders().getAccept().stream()
+                              .anyMatch(mediaType -> mediaType.includes(APPLICATION_JSON))) {
+                            exchange.getResponse().setStatusCode(UNAUTHORIZED);
+                            return exchange.getResponse().setComplete();
+                        }
+                        // Otherwise, redirect to Keycloak (default behavior)
+                        return new RedirectServerAuthenticationEntryPoint("/oauth2/authorization/keycloak")
+                              .commence(exchange, ex);
+                    })
               ).oauth2Login(Customizer.withDefaults())
               .logout(logout -> logout
                     .logoutSuccessHandler(oidcLogoutSuccessHandler())
